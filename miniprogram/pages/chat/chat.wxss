@@ -3,14 +3,16 @@
 /* in-page header — pinned at top (flex-shrink:0; stream gets min-height:0 so
    only the message area scrolls and this row never moves) */
 .mini-head { flex-shrink: 0; display: flex; align-items: center; padding: 16rpx 24rpx; background: #fff; border-bottom: 1rpx solid #e9edf3; z-index: 10; }
-.mh-right { position: relative; display: flex; align-items: center; gap: 12rpx; }
-.ava-tip { font-size: 20rpx; color: #7c3aed; background: #f5f3ff; border: 1rpx solid #e9d5ff; padding: 8rpx 14rpx; border-radius: 12rpx; white-space: nowrap; animation: tipPulse 1.6s ease-in-out infinite; }
+.mh-right { position: relative; display: flex; align-items: center; flex-shrink: 0; }
+/* tip floats BELOW the avatar so it never squeezes the title row */
+.ava-tip { position: absolute; top: 76rpx; right: 0; z-index: 30; font-size: 20rpx; color: #7c3aed; background: #f5f3ff; border: 1rpx solid #e9d5ff; padding: 8rpx 14rpx; border-radius: 12rpx; white-space: nowrap; box-shadow: 0 4rpx 12rpx rgba(124,58,237,.15); animation: tipPulse 1.6s ease-in-out infinite; }
+.ava-tip::before { content: ""; position: absolute; top: -8rpx; right: 22rpx; border-left: 8rpx solid transparent; border-right: 8rpx solid transparent; border-bottom: 8rpx solid #f5f3ff; }
 @keyframes tipPulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
 .ava-dot { position: absolute; right: -4rpx; top: -4rpx; width: 18rpx; height: 18rpx; border-radius: 50%; background: #ef4444; border: 2rpx solid #fff; }
-.mh-left { display: flex; align-items: center; gap: 16rpx; flex: 1; }
-.mh-ava { width: 60rpx; height: 60rpx; border-radius: 18rpx; background: linear-gradient(135deg, #7c3aed, #4f46e5); color: #fff; text-align: center; line-height: 60rpx; font-size: 30rpx; }
-.mh-title { font-size: 28rpx; font-weight: 600; }
-.mh-sub { font-size: 20rpx; color: #16a34a; margin-top: 2rpx; }
+.mh-left { display: flex; align-items: center; gap: 16rpx; flex: 1; min-width: 0; }
+.mh-ava { width: 60rpx; height: 60rpx; border-radius: 18rpx; background: linear-gradient(135deg, #7c3aed, #4f46e5); color: #fff; text-align: center; line-height: 60rpx; font-size: 30rpx; flex-shrink: 0; }
+.mh-title { font-size: 28rpx; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mh-sub { font-size: 20rpx; color: #16a34a; margin-top: 2rpx; white-space: nowrap; }
 /* tap-to-choose real avatar button (reset default button chrome) */
 .me-ava-btn { width: 64rpx; height: 64rpx; padding: 0; margin: 0; background: transparent; border-radius: 18rpx; line-height: normal; flex-shrink: 0; }
 .me-ava-btn::after { border: none; }
