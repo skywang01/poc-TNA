@@ -1,20 +1,25 @@
-.chat { display: flex; flex-direction: column; height: 100vh; }
+.chat { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 
-/* in-page header */
-.mini-head { flex-shrink: 0; display: flex; align-items: center; padding: 16rpx 24rpx; background: #fff; border-bottom: 1rpx solid #e9edf3; }
+/* in-page header — pinned at top (flex-shrink:0; stream gets min-height:0 so
+   only the message area scrolls and this row never moves) */
+.mini-head { flex-shrink: 0; display: flex; align-items: center; padding: 16rpx 24rpx; background: #fff; border-bottom: 1rpx solid #e9edf3; z-index: 10; }
+.mh-right { position: relative; display: flex; align-items: center; gap: 12rpx; }
+.ava-tip { font-size: 20rpx; color: #7c3aed; background: #f5f3ff; border: 1rpx solid #e9d5ff; padding: 8rpx 14rpx; border-radius: 12rpx; white-space: nowrap; animation: tipPulse 1.6s ease-in-out infinite; }
+@keyframes tipPulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+.ava-dot { position: absolute; right: -4rpx; top: -4rpx; width: 18rpx; height: 18rpx; border-radius: 50%; background: #ef4444; border: 2rpx solid #fff; }
 .mh-left { display: flex; align-items: center; gap: 16rpx; flex: 1; }
 .mh-ava { width: 60rpx; height: 60rpx; border-radius: 18rpx; background: linear-gradient(135deg, #7c3aed, #4f46e5); color: #fff; text-align: center; line-height: 60rpx; font-size: 30rpx; }
 .mh-title { font-size: 28rpx; font-weight: 600; }
 .mh-sub { font-size: 20rpx; color: #16a34a; margin-top: 2rpx; }
 /* tap-to-choose real avatar button (reset default button chrome) */
-.me-ava-btn { width: 64rpx; height: 64rpx; padding: 0; margin: 0; background: transparent; border-radius: 18rpx; overflow: hidden; line-height: normal; flex-shrink: 0; }
+.me-ava-btn { width: 64rpx; height: 64rpx; padding: 0; margin: 0; background: transparent; border-radius: 18rpx; line-height: normal; flex-shrink: 0; }
 .me-ava-btn::after { border: none; }
-.me-ava-img { width: 64rpx; height: 64rpx; display: block; }
+.me-ava-img { width: 64rpx; height: 64rpx; display: block; border-radius: 18rpx; }
 .me-ava-ph { width: 64rpx; height: 64rpx; border-radius: 18rpx; background: linear-gradient(135deg, #e2e8f0, #cbd5e1); position: relative; }
 .me-ava-ph::before { content: ""; position: absolute; left: 50%; top: 14rpx; width: 26rpx; height: 26rpx; border-radius: 50%; background: #fff; transform: translateX(-50%); }
 .me-ava-ph::after { content: ""; position: absolute; left: 50%; bottom: -4rpx; width: 44rpx; height: 32rpx; border-radius: 24rpx 24rpx 0 0; background: #fff; transform: translateX(-50%); }
 
-.stream { flex: 1; padding: 24rpx; box-sizing: border-box; }
+.stream { flex: 1; min-height: 0; padding: 24rpx; box-sizing: border-box; }
 
 .row { display: flex; gap: 16rpx; margin-bottom: 28rpx; }
 .row.me { flex-direction: row-reverse; }
