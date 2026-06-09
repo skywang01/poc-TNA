@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/store.tsx","./src/a2ui/components.tsx","./src/ai/bipoagentengine.ts","./src/ai/mockengine.ts","./src/ai/scripts.ts","./src/ai/types.ts","./src/chatbot/chatbot.tsx","./src/chatbot/chatcontext.ts","./src/dashboard/dashboard.tsx","./src/data/mockdata.ts","./src/data/types.ts","./src/shell/shell.tsx"],"version":"5.9.3"}
