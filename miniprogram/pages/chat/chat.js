@@ -7,6 +7,7 @@ Page({
   data: {
     messages: [],
     input: "",
+    inputFocus: false,
     streaming: false,
     suggestions: SUGGESTIONS,
     toView: "",
@@ -32,6 +33,19 @@ Page({
   },
 
   onInput(e) { this.setData({ input: e.detail.value }); },
+
+  // Voice input. Focuses the field so the system keyboard's built-in
+  // speech-to-text (🎤) can be used — works on unverified accounts today.
+  // Once the mini program is 微信认证, swap this for the WechatSI plugin
+  // (requirePlugin('WechatSI').getRecordRecognitionManager()) for in-app
+  // press-to-talk recognition. (Plugin needs adding in 后台→插件管理, which
+  // requires 认证.)
+  onVoiceTap() {
+    this.setData({ inputFocus: true });
+    wx.showToast({ title: "点键盘上的 🎤 说话转文字", icon: "none", duration: 2000 });
+  },
+  onInputFocus() {},
+  onInputBlur() { this.setData({ inputFocus: false }); },
 
   onSendTap() {
     const q = this.data.input;

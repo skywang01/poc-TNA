@@ -124,8 +124,9 @@
       <view wx:for="{{suggestions}}" wx:key="*this" class="q" data-q="{{item}}" bindtap="onSuggest">{{item}}</view>
     </scroll-view>
     <view class="box">
-      <input class="inp" value="{{input}}" placeholder="问问考勤的任何问题…" confirm-type="send"
-             bindinput="onInput" bindconfirm="onSendTap" />
+      <view class="mic" bindtap="onVoiceTap">🎤</view>
+      <input class="inp" value="{{input}}" focus="{{inputFocus}}" placeholder="问问考勤的任何问题…" confirm-type="send"
+             bindinput="onInput" bindfocus="onInputFocus" bindblur="onInputBlur" bindconfirm="onSendTap" />
       <button class="send" size="mini" disabled="{{streaming || !input}}" bindtap="onSendTap">↑</button>
     </view>
   </view>
