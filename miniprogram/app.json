@@ -1,0 +1,24 @@
+{
+  "pages": [
+    "pages/dashboard/dashboard",
+    "pages/chat/chat"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#4f46e5",
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "BIPO Attendance AI",
+    "backgroundColor": "#eef0f4"
+  },
+  "tabBar": {
+    "color": "#94a3b8",
+    "selectedColor": "#4f46e5",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      { "pagePath": "pages/dashboard/dashboard", "text": "AI 看板" },
+      { "pagePath": "pages/chat/chat", "text": "AI 助手" }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

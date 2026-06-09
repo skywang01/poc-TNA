@@ -1,0 +1,93 @@
+<view class="page">
+
+  <!-- ① AI 智能摘要 -->
+  <view class="summary">
+    <view class="spark">✨</view>
+    <view class="stxt">
+      <view class="tag">AI 智能摘要 · Opus 生成</view>
+      <view class="sline">本月出勤率 <text class="b">{{aiSummary.attendance}}</text>(环比 <text class="up">↑{{aiSummary.attendanceDelta}}</text>),整体健康。{{aiSummary.otDept}} OT <text class="b">同比 {{aiSummary.otDelta}}</text>,逼近预算上限。检测到 <text class="risk">{{aiSummary.anomalies}} 处异常</text> 与 <text class="risk">{{aiSummary.risks}} 项合规风险</text>。</view>
+      <view class="sactions">
+        <button class="btn btn-primary" size="mini" data-q="汇总本月所有异常和合规风险" bindtap="askAI">查看全部风险</button>
+        <button class="btn btn-ghost" size="mini" data-q="分析研发部 OT 为什么飙升,谁加班最多?" bindtap="askAI">让 AI 深入分析 →</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- pinned dashboards from chat -->
+  <view wx:if="{{pinned.length}}" class="pinned-wrap">
+    <view class="pinned-head">📌 从 AI 助手钉来的看板</view>
+    <view wx:for="{{pinned}}" wx:key="title" class="card pinned-card">
+      <view class="unpin" data-i="{{index}}" bindtap="unpin">✕</view>
+      <view class="pinned-title">{{item.title}}</view>
+      <view class="gtiles">
+        <view wx:for="{{item.tiles}}" wx:for-item="t" wx:key="label" class="gtile">
+          <view class="gl">{{t.label}}</view>
+          <view class="gv {{t.danger ? 'danger' : ''}}">{{t.value}}</view>
+        </view>
+      </view>
+      <view class="mini-bars">
+        <view wx:for="{{item.series}}" wx:for-item="v" wx:key="*this" class="mb" style="height: {{v}}%"></view>
+      </view>
+    </view>
+  </view>
+
+  <!-- KPI grid -->
+  <view class="kpis">
+    <view wx:for="{{kpis}}" wx:key="label" class="kpi">
+      <view class="kl">{{item.label}}</view>
+      <view class="kv">{{item.value}}</view>
+      <view class="kd {{item.up ? 'up' : 'down'}}">{{item.delta}}</view>
+    </view>
+  </view>
+
+  <!-- OT by dept -->
+  <view class="card">
+    <view class="card-title"><view class="ic ic-chart">📊</view>OT 工时 · 部门对比</view>
+    <view class="bars">
+      <view wx:for="{{deptOt}}" wx:key="dept" class="bar-col">
+        <view class="bar" style="height: {{item.pct * 2.2}}rpx"></view>
+        <view class="bar-label">{{item.dept}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- trend sparkline -->
+  <view class="card">
+    <view class="card-title"><view class="ic ic-chart">📈</view>出勤趋势(近 7 周)</view>
+    <view class="spark-bars">
+      <view wx:for="{{trend}}" wx:key="*this" class="sb" style="height: {{item / trendMax * 120}}rpx"></view>
+    </view>
+  </view>
+
+  <!-- ② AI 异常检测 -->
+  <view class="card">
+    <view class="card-title"><view class="ic ic-warn">⚠️</view>AI 异常检测<text class="count">{{anomalies.length}} 项</text></view>
+    <view wx:for="{{anomalies}}" wx:key="id" class="alert {{item.severity === 'high' ? 'alert-red' : 'alert-amber'}}"
+          data-q="深入分析:{{item.title}}" bindtap="askAI">
+      <view class="dot {{item.severity === 'high' ? 'dot-red' : 'dot-amber'}}"></view>
+      <view class="c">
+        <view class="t">{{item.title}}</view>
+        <view class="why">{{item.why}}<text class="ai">{{item.ai}}</text></view>
+      </view>
+      <view class="sev {{item.severity === 'high' ? 'sev-high' : 'sev-mid'}}">{{item.severity === 'high' ? '高' : '中'}}</view>
+    </view>
+  </view>
+
+  <!-- ③ 合规风控 -->
+  <view class="card">
+    <view class="card-title"><view class="ic ic-law">⚖️</view>合规风控<text class="count">{{compliance.length}} 项</text></view>
+    <view wx:for="{{compliance}}" wx:key="id" class="alert {{item.severity === 'high' ? 'alert-red' : 'alert-amber'}}"
+          data-q="深入分析:{{item.title}}" bindtap="askAI">
+      <view class="dot {{item.severity === 'high' ? 'dot-red' : 'dot-amber'}}"></view>
+      <view class="c">
+        <view class="t">{{item.title}}</view>
+        <view class="why">{{item.why}}<text class="ai">{{item.ai}}</text></view>
+      </view>
+      <view class="sev {{item.severity === 'high' ? 'sev-high' : 'sev-mid'}}">{{item.severity === 'high' ? '高' : '中'}}</view>
+    </view>
+  </view>
+
+</view>
+
+<!-- floating 问 AI -->
+<view class="fab" data-q="" bindtap="askAI">✨</view>
