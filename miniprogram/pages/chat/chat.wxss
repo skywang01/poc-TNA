@@ -5,7 +5,10 @@
 .row.me { flex-direction: row-reverse; }
 .av { width: 60rpx; height: 60rpx; border-radius: 18rpx; flex-shrink: 0; text-align: center; line-height: 60rpx; font-size: 30rpx; }
 .av-ai { background: linear-gradient(135deg, #7c3aed, #4f46e5); color: #fff; }
-.av-u { background: #e2e8f0; }
+/* default user avatar — white person silhouette on slate (replaces the emoji) */
+.av-u { background: linear-gradient(135deg, #e2e8f0, #cbd5e1); position: relative; overflow: hidden; }
+.av-u::before { content: ""; position: absolute; left: 50%; top: 13rpx; width: 24rpx; height: 24rpx; border-radius: 50%; background: #fff; transform: translateX(-50%); }
+.av-u::after { content: ""; position: absolute; left: 50%; bottom: -4rpx; width: 42rpx; height: 30rpx; border-radius: 22rpx 22rpx 0 0; background: #fff; transform: translateX(-50%); }
 .bubble { max-width: 78%; }
 .me-bubble { background: #4f46e5; color: #fff; padding: 20rpx 24rpx; border-radius: 24rpx 24rpx 8rpx 24rpx; font-size: 28rpx; }
 .ai-bubble { max-width: 86%; }

@@ -5,7 +5,7 @@
       <!-- user bubble -->
       <block wx:if="{{item.role === 'user'}}">
         <view class="bubble me-bubble">{{item.text}}</view>
-        <view class="av av-u">🙂</view>
+        <view class="av av-u"></view>
       </block>
 
       <!-- agent message -->
