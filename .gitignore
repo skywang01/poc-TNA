@@ -7,3 +7,6 @@ verify-*.png
 .env.local
 .env*.local
 *.png
+miniprogram/utils/config.js
+miniprogram-ci-key/
+*.key

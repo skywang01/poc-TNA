@@ -1,9 +1,11 @@
-// Scripted "agent" for the mini-program demo. Emits a sequence of messages with
-// delays to mimic a live agent. Same idea as the web MockEngine; swap this for a
-// real wx.request -> bipo-ai-service call when a backend domain is whitelisted.
+// Chat engine. CFG.useMock=true -> scripted demo; false -> real agent platform
+// (bipo-ai-service) over wx.request. Both feed the same message stream, so the
+// chat UI is identical either way.
 
 const D = require("./mockData");
+const CFG = require("./config");
 
+/* ───────────────────────── Mock (scripted) ───────────────────────── */
 function scriptFor(q) {
   if (/看板|生成|面板/.test(q)) {
     return [
@@ -29,49 +31,104 @@ function scriptFor(q) {
       { ctype: "anomaly_alert", items: D.anomalies },
     ];
   }
-  if (/迟到/.test(q)) {
-    return [{ ctype: "text", text: "迟到最多的是运营部(38 人次)。AI 发现:李四周一迟到率 80%,显著高于其他工作日 —— 像周期性问题,建议单独沟通。" }];
-  }
-  if (/成本|预算|超支/.test(q)) {
-    return [
-      { ctype: "toolcall", label: "attendance.ot_cost(month=2026-06)" },
-      { ctype: "text", text: "本月 OT 成本约 ¥18.6 万,已用预算的 104% —— 已超支。研发部占 62%,建议优先压缩研发周末 OT。" },
-    ];
-  }
   if (/OT|加班|工时|谁.*多/i.test(q)) {
     return [
       { ctype: "toolcall", label: "attendance.query_ot(dept=研发, month=2026-05)" },
       { ctype: "progress", label: "正在分析 OT 明细", scanned: 142, total: 142 },
-      { ctype: "text", text: "研发部上月 OT 共 486 小时,集中在少数人。张三(96h)远高于团队中位数,且 70% 在周末,建议关注:" },
+      { ctype: "text", text: "研发部上月 OT 共 486 小时,集中在少数人。张三(96h)远高于团队中位数:" },
       { ctype: "ot_breakdown", title: "研发部 OT Top 5", people: D.rdOtTop },
     ];
   }
-  return [{ ctype: "text", text: "我可以帮你分析考勤数据。试试:「研发部谁 OT 最多」「给我看异常打卡」「本月 OT 成本超预算了吗」,或「做个研发部 OT 看板」。" }];
+  return [{ ctype: "text", text: "我可以帮你分析考勤数据。试试:「研发部谁 OT 最多」「给我看异常打卡」,或「做个研发部 OT 看板」。" }];
 }
 
-function delayFor(m) {
-  if (m.ctype === "toolcall") return 500;
-  if (m.ctype === "progress") return 750;
-  if (m.ctype === "text") return 600;
-  return 450;
-}
-
-// invoke(query, { onMessage(msg), onDone() }) -> emits messages sequentially
-function invoke(query, handlers) {
+function invokeMock(query, handlers) {
   const msgs = scriptFor((query || "").trim());
   let i = 0;
   function step() {
-    if (i >= msgs.length) {
-      handlers.onDone && handlers.onDone();
-      return;
-    }
+    if (i >= msgs.length) return handlers.onDone && handlers.onDone();
     const m = msgs[i++];
-    setTimeout(() => {
-      handlers.onMessage(Object.assign({ role: "ai" }, m));
-      step();
-    }, delayFor(m));
+    const d = m.ctype === "progress" ? 750 : m.ctype === "text" ? 600 : 450;
+    setTimeout(() => { handlers.onMessage(Object.assign({ role: "ai" }, m)); step(); }, d);
   }
   step();
+}
+
+/* ───────────────────── Real agent (bipo-ai-service) ───────────────── */
+let sessionId = null;
+
+// Pull ```a2ui {json}``` blocks out of the agent's text -> card messages,
+// keeping the surrounding prose as text messages (same protocol as the web app).
+function parseA2ui(text) {
+  const out = [];
+  const re = /```a2ui([\s\S]*?)```/g;
+  let last = 0, m;
+  while ((m = re.exec(text)) !== null) {
+    const before = text.slice(last, m.index).trim();
+    if (before) out.push({ role: "ai", ctype: "text", text: before });
+    try {
+      const spec = JSON.parse(m[1].trim());
+      if (spec && spec.output_type) {
+        out.push(Object.assign({ role: "ai", ctype: spec.output_type }, spec.data || {}));
+      } else {
+        out.push({ role: "ai", ctype: "text", text: m[1].trim() });
+      }
+    } catch (e) {
+      out.push({ role: "ai", ctype: "text", text: m[1].trim() });
+    }
+    last = re.lastIndex;
+  }
+  const tail = text.slice(last).trim();
+  if (tail) out.push({ role: "ai", ctype: "text", text: tail });
+  return out;
+}
+
+function invokeReal(query, handlers) {
+  const params = { input: query };
+  if (sessionId) params.session_id = sessionId;
+
+  wx.request({
+    url: CFG.baseUrl + "/api/agents/" + CFG.agentId + "/invoke",
+    method: "POST",
+    timeout: 60000,
+    dataType: "text", // response is text/event-stream; keep raw string
+    header: { "content-type": "application/json", "x-service-key": CFG.serviceKey },
+    data: { jsonrpc: "2.0", id: "mp-" + Date.now(), method: "invoke", params },
+    success(res) {
+      const raw = typeof res.data === "string" ? res.data : JSON.stringify(res.data);
+      let text = "";
+      raw.split("\n").forEach((line) => {
+        line = line.trim();
+        if (!line.indexOf || line.indexOf("data:") !== 0) return;
+        let payload;
+        try { payload = JSON.parse(line.slice(5).trim()); } catch (e) { return; }
+        if (payload.error) {
+          handlers.onMessage({ role: "ai", ctype: "text", text: "⚠️ " + (payload.error.message || "agent error") });
+          return;
+        }
+        const r = payload.result;
+        if (!r) return;
+        if (r.session_id) sessionId = r.session_id;
+        const c = r.content || {};
+        if (c.type === "text") text += c.text;
+        else if (c.type === "tool_call") handlers.onMessage({ role: "ai", ctype: "toolcall", label: c.tool });
+        else if (c.type === "agent_output") handlers.onMessage(Object.assign({ role: "ai", ctype: c.output_type }, c.data || {}));
+      });
+      parseA2ui(text).forEach((msg) => handlers.onMessage(msg));
+      handlers.onDone && handlers.onDone();
+    },
+    fail(err) {
+      handlers.onMessage({ role: "ai", ctype: "text", text: "请求失败:" + (err.errMsg || "网络错误") });
+      handlers.onDone && handlers.onDone();
+    },
+  });
+}
+
+function invoke(query, handlers) {
+  const q = (query || "").trim();
+  if (!q) return handlers.onDone && handlers.onDone();
+  if (CFG.useMock) invokeMock(q, handlers);
+  else invokeReal(q, handlers);
 }
 
 module.exports = { invoke };
