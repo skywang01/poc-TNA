@@ -26,7 +26,7 @@ export function Chatbot() {
   const [streaming, setStreaming] = useState(false);
   const [input, setInput] = useState("");
   const seq = useRef(1);
-  const sessionId = useRef("sess-" + Date.now());
+  const sessionId = useRef(crypto.randomUUID());
   const streamRef = useRef<HTMLDivElement>(null);
 
   const scrollDown = () => {

@@ -7,7 +7,16 @@ import react from "@vitejs/plugin-react";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const target = env.BIPO_TARGET || "http://localhost:8000";
+  const serviceKey = env.BIPO_SERVICE_KEY || "";
   const token = env.BIPO_TOKEN || "";
+
+  // Auth injected server-side so the secret never reaches the browser bundle.
+  // Service Key (machine-to-machine) takes precedence; falls back to Bearer.
+  const authHeaders: Record<string, string> | undefined = serviceKey
+    ? { "x-service-key": serviceKey }
+    : token
+      ? { Authorization: `Bearer ${token}` }
+      : undefined;
 
   return {
     plugins: [react()],
@@ -20,7 +29,7 @@ export default defineConfig(({ mode }) => {
           target,
           changeOrigin: true,
           secure: false,
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          headers: authHeaders,
         },
       },
     },

@@ -6,3 +6,4 @@ verify-*.png
 .DS_Store
 .env.local
 .env*.local
+*.png

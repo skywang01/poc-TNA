@@ -31,30 +31,34 @@ POC 的 Chatbot 通过统一接口 `AIEngine` 工作。演示默认走脚本化 
 `agent_output`(= A2UI,按 `output_type` 查 `src/a2ui/components.tsx` 的注册表渲染;
 未注册的类型走可读 JSON 兜底)。
 
-## 三步切到真实 Agent
+## 切到真实 Agent(Service Key 模式)
 
 编辑 `.env.local`(已 gitignore):
 
 ```bash
-BIPO_TARGET=https://你的服务地址        # 1. 真实 service URL(本地则 http://localhost:8000)
-BIPO_TOKEN=你的JWT                      # 2. Bearer token(proxy 层注入)
-VITE_AGENT_MODE=real                    # 3. mock -> real
-VITE_BIPO_AGENT_ID=payroll-assistant    #    Attendance agent 建好后替换
+BIPO_TARGET=https://bipo-ai-test.bipocloud.com   # 真实 service URL
+BIPO_SERVICE_KEY=sk_xxx                           # Service Key(proxy 层注入 x-service-key)
+VITE_AGENT_MODE=real                              # mock -> real
+VITE_BIPO_AGENT_ID=attendance-ai                  # 已创建的 Attendance agent
 ```
 
-然后重启 dev server:
+Service Key 在 Admin UI > Management > Service Keys 创建,只显示一次。
+然后重启 dev server:`npm run dev`。
 
-```bash
-npm run dev
-```
+### 会话(session)
+首轮 **不传** `session_id`(服务端要求 UUID,且需服务端已存在),由服务端新建并在
+响应 `result.session_id` 返回;`BipoAgentEngine` 自动捕获并在后续轮次复用,实现多轮记忆。
 
-## 让 A2UI 组件在真实 agent 上生效
+## A2UI 在真实 agent 上如何生效(零后端注册)
 
-真实 agent 默认只吐 `text` / `tool_call` / 平台内置 `agent_output`(如 `analysis_progress`、
-`flow_plan_progress`)。要让 POC 里的考勤组件(`ot_breakdown` / `ot_approval` /
-`generated_dashboard` 等)出现,需在 **平台侧给该 agent 注册同名 `agent_output`**
-(`output_id` 与 `src/a2ui/components.tsx` 的注册表 key 一一对应)。前端已就绪,
-平台注册后即可端到端联动。
+平台现役 agent 不用 `agent_output`(都渲染 markdown),也没注册考勤专用 output。
+本 POC 用 **生成式 UI** 技巧避免改后端:`attendance-ai` 的 system prompt 指示它在回复里
+内嵌 ` ```a2ui {json}``` ` 代码块;`BipoAgentEngine` 在客户端解析这些块 → 转成
+`agent_output` 消息 → 复用 `src/a2ui/components.tsx` 的注册表渲染成真卡片。
+支持的 `output_type`:`ot_breakdown` / `ot_approval` / `anomaly_alert` /
+`generated_dashboard` / `proactive`。
+
+> 已端到端验证:问「研发部谁 OT 最多」→ 真实 agent 返回文字 + a2ui 块 → 渲染 ot_breakdown 卡片。
 
 ## 验证
 
