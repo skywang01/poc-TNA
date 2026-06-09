@@ -1,11 +1,27 @@
 <view class="chat">
+  <!-- in-page header: brand + tap-to-set real WeChat avatar -->
+  <view class="mini-head">
+    <view class="mh-left">
+      <view class="mh-ava">✨</view>
+      <view>
+        <view class="mh-title">Attendance AI</view>
+        <view class="mh-sub">● 在线 · 由 Agent 驱动</view>
+      </view>
+    </view>
+    <button class="me-ava-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+      <image wx:if="{{userAvatar}}" class="me-ava-img" src="{{userAvatar}}" mode="aspectFill" />
+      <view wx:else class="me-ava-ph"></view>
+    </button>
+  </view>
+
   <scroll-view class="stream" scroll-y scroll-into-view="{{toView}}" scroll-with-animation>
     <view wx:for="{{messages}}" wx:key="id" id="m{{item.id}}" class="row {{item.role === 'user' ? 'me' : 'ai'}}">
 
       <!-- user bubble -->
       <block wx:if="{{item.role === 'user'}}">
         <view class="bubble me-bubble">{{item.text}}</view>
-        <view class="av av-u"></view>
+        <image wx:if="{{userAvatar}}" class="av" src="{{userAvatar}}" mode="aspectFill" />
+        <view wx:else class="av av-u"></view>
       </block>
 
       <!-- agent message -->

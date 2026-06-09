@@ -1,4 +1,19 @@
 .chat { display: flex; flex-direction: column; height: 100vh; }
+
+/* in-page header */
+.mini-head { flex-shrink: 0; display: flex; align-items: center; padding: 16rpx 24rpx; background: #fff; border-bottom: 1rpx solid #e9edf3; }
+.mh-left { display: flex; align-items: center; gap: 16rpx; flex: 1; }
+.mh-ava { width: 60rpx; height: 60rpx; border-radius: 18rpx; background: linear-gradient(135deg, #7c3aed, #4f46e5); color: #fff; text-align: center; line-height: 60rpx; font-size: 30rpx; }
+.mh-title { font-size: 28rpx; font-weight: 600; }
+.mh-sub { font-size: 20rpx; color: #16a34a; margin-top: 2rpx; }
+/* tap-to-choose real avatar button (reset default button chrome) */
+.me-ava-btn { width: 64rpx; height: 64rpx; padding: 0; margin: 0; background: transparent; border-radius: 18rpx; overflow: hidden; line-height: normal; flex-shrink: 0; }
+.me-ava-btn::after { border: none; }
+.me-ava-img { width: 64rpx; height: 64rpx; display: block; }
+.me-ava-ph { width: 64rpx; height: 64rpx; border-radius: 18rpx; background: linear-gradient(135deg, #e2e8f0, #cbd5e1); position: relative; }
+.me-ava-ph::before { content: ""; position: absolute; left: 50%; top: 14rpx; width: 26rpx; height: 26rpx; border-radius: 50%; background: #fff; transform: translateX(-50%); }
+.me-ava-ph::after { content: ""; position: absolute; left: 50%; bottom: -4rpx; width: 44rpx; height: 32rpx; border-radius: 24rpx 24rpx 0 0; background: #fff; transform: translateX(-50%); }
+
 .stream { flex: 1; padding: 24rpx; box-sizing: border-box; }
 
 .row { display: flex; gap: 16rpx; margin-bottom: 28rpx; }

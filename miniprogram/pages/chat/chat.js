@@ -8,6 +8,7 @@ Page({
     messages: [],
     input: "",
     inputFocus: false,
+    userAvatar: "",   // real WeChat avatar chosen via open-type="chooseAvatar"
     streaming: false,
     suggestions: SUGGESTIONS,
     toView: "",
@@ -15,7 +16,24 @@ Page({
   },
 
   onLoad() {
+    const saved = wx.getStorageSync("userAvatar");
+    if (saved) this.setData({ userAvatar: saved });
     this.push({ role: "ai", ctype: "text", text: "你好,我是 Attendance AI。问我考勤、加班、异常或合规的任何问题,我也能帮你生成看板。" });
+  },
+
+  // Real WeChat avatar picker (open-type="chooseAvatar"). Persist a local copy
+  // so it survives restarts; fall back to the temp path if copy fails.
+  onChooseAvatar(e) {
+    const tmp = e.detail && e.detail.avatarUrl;
+    if (!tmp) return;
+    const fs = wx.getFileSystemManager();
+    const dest = `${wx.env.USER_DATA_PATH}/avatar_${Date.now()}.png`;
+    fs.copyFile({
+      srcPath: tmp,
+      destPath: dest,
+      success: () => { this.setData({ userAvatar: dest }); wx.setStorageSync("userAvatar", dest); },
+      fail: () => { this.setData({ userAvatar: tmp }); wx.setStorageSync("userAvatar", tmp); },
+    });
   },
 
   onShow() {
