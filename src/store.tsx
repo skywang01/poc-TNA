@@ -5,8 +5,20 @@
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { MockEngine } from "./ai/MockEngine";
+import { BipoAgentEngine } from "./ai/BipoAgentEngine";
 import type { AIEngine } from "./ai/types";
 import { pendingOt } from "./data/mockData";
+
+// Engine selection. Default: scripted MockEngine (demo). Set VITE_AGENT_MODE=real
+// in .env.local to talk to the real bipo-ai-service (via the Vite proxy).
+function createEngine(): AIEngine {
+  if (import.meta.env.VITE_AGENT_MODE === "real") {
+    const agentId = import.meta.env.VITE_BIPO_AGENT_ID || "payroll-assistant";
+    // baseUrl="" -> same-origin; the Vite proxy forwards /api and adds auth.
+    return new BipoAgentEngine("", agentId);
+  }
+  return new MockEngine();
+}
 
 export type View = "dashboard" | "chat";
 export type ApprovalStatus = "approved" | "rejected";
@@ -47,7 +59,7 @@ interface Store {
 const Ctx = createContext<Store | null>(null);
 
 export function AppStoreProvider({ children }: { children: ReactNode }) {
-  const engine = useMemo(() => new MockEngine(), []);
+  const engine = useMemo(() => createEngine(), []);
   const [view, setView] = useState<View>("dashboard");
   const [pendingQuery, setPendingQuery] = useState<string | null>(null);
   const [approvals, setApprovals] = useState<Record<string, ApprovalStatus>>({});

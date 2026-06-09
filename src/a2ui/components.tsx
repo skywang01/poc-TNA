@@ -220,6 +220,18 @@ const REGISTRY: Record<string, (p: { data: Data }) => JSX.Element> = {
 
 export function A2UIRenderer({ outputType, data }: { outputType: string; data: Data }) {
   const Comp = REGISTRY[outputType];
-  if (!Comp) return <div className="a2ui"><div className="bd">未知组件:{outputType}</div></div>;
-  return <Comp data={data} />;
+  if (Comp) return <Comp data={data} />;
+  // Graceful fallback for agent_output types this POC has no custom renderer
+  // for (e.g. real-agent builtins like flow_plan_progress). Shows the payload
+  // so nothing is lost; register a component in REGISTRY to give it real UI.
+  return (
+    <div className="a2ui">
+      <div className="h">🧩 {outputType}<span className="badge">A2UI · 未注册</span></div>
+      <div className="bd">
+        <pre style={{ fontSize: 12, color: "var(--slate)", whiteSpace: "pre-wrap", margin: 0 }}>
+          {JSON.stringify(data, null, 2)}
+        </pre>
+      </div>
+    </div>
+  );
 }

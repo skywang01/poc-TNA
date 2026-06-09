@@ -4,3 +4,5 @@ dist/
 .playwright-mcp/
 verify-*.png
 .DS_Store
+.env.local
+.env*.local
