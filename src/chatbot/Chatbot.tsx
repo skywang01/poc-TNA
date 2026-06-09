@@ -9,7 +9,7 @@ type Entry =
   | { kind: "user"; id: number; text: string }
   | { kind: "agent"; id: number; m: AgentMessage };
 
-const SUGGESTIONS = ["研发部谁 OT 最多?", "给我看异常打卡", "本月 OT 成本超预算了吗?", "做个研发部 OT 看板"];
+const SUGGESTIONS = ["研发部谁 OT 最多?", "帮我审批待处理的 OT", "给我看异常打卡", "本月 OT 成本超预算了吗?", "做个研发部 OT 看板"];
 
 function mdBold(s: string) {
   return s.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
