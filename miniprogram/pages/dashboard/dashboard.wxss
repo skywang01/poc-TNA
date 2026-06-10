@@ -73,11 +73,29 @@
 .mini-bars { display: flex; align-items: flex-end; gap: 12rpx; height: 100rpx; }
 .mini-bars .mb { flex: 1; background: linear-gradient(#79A2FF, #20307D); border-radius: 6rpx 6rpx 1rpx 1rpx; }
 
-/* ── FAB ── */
+/* ── icon images (replace emoji) ── */
+.spark { display: flex; align-items: center; justify-content: center; }
+.spark-img { width: 34rpx; height: 34rpx; }
+.card-title .ic .cic { width: 26rpx; height: 26rpx; }
+.pinned-head { display: flex; align-items: center; gap: 8rpx; }
+.pinned-head-img { width: 24rpx; height: 24rpx; }
+.unpin { display: flex; align-items: center; justify-content: center; }
+.unpin-img { width: 22rpx; height: 22rpx; }
+
+/* ── FAB — pill with icon + label ── */
 .fab {
-  position: fixed; right: 40rpx; bottom: 130rpx;
-  width: 100rpx; height: 100rpx; border-radius: 999rpx;
-  background: linear-gradient(135deg, #20307D, #2A63E6); color: #fff;
-  font-size: 44rpx; text-align: center; line-height: 100rpx;
+  position: fixed; right: 32rpx; bottom: 130rpx;
+  height: 92rpx; padding: 0 32rpx; border-radius: 999rpx;
+  display: flex; align-items: center; gap: 12rpx;
+  background: linear-gradient(135deg, #20307D, #2A63E6);
   box-shadow: 0 12rpx 36rpx rgba(42,99,230,.36);
 }
+.fab-img { width: 34rpx; height: 34rpx; }
+.fab-label { color: #fff; font-size: 28rpx; font-weight: 600; line-height: 1; }
+
+/* language toggle */
+.langbar { display: flex; justify-content: flex-end; margin-bottom: 8rpx; }
+.langbar .seg { font-size: 20rpx; padding: 8rpx 18rpx; color: var(--slate); background: #fff; border: 1rpx solid var(--line); }
+.langbar .seg:first-child { border-radius: 999rpx 0 0 999rpx; border-right: none; }
+.langbar .seg:last-child { border-radius: 0 999rpx 999rpx 0; }
+.langbar .seg.on { background: var(--navy); color: #fff; border-color: var(--navy); }

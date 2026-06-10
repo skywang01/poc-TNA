@@ -1,15 +1,19 @@
 <view class="chat">
-  <!-- in-page header: brand + tap-to-set real WeChat avatar -->
+  <!-- in-page header: brand + lang toggle + tap-to-set avatar -->
   <view class="mini-head">
     <view class="mh-left">
-      <view class="mh-ava">✨</view>
-      <view>
-        <view class="mh-title">Attendance AI</view>
-        <view class="mh-sub">● 在线 · 由 Agent 驱动</view>
+      <view class="mh-ava"><image class="mh-ava-img" src="/assets/icons/sparkles-white.svg" /></view>
+      <view class="mh-meta">
+        <view class="mh-title">{{t.chatTitle}}</view>
+        <view class="mh-sub">{{t.chatSub}}</view>
       </view>
     </view>
+    <view class="langbar">
+      <view class="seg {{locale==='zh'?'on':''}}" data-l="zh" bindtap="switchLang">中</view>
+      <view class="seg {{locale==='en'?'on':''}}" data-l="en" bindtap="switchLang">EN</view>
+    </view>
     <view class="mh-right">
-      <view wx:if="{{!userAvatar}}" class="ava-tip">用我的微信头像</view>
+      <view wx:if="{{!userAvatar}}" class="ava-tip">{{t.avaTip}}</view>
       <button class="me-ava-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
         <image wx:if="{{userAvatar}}" class="me-ava-img" src="{{userAvatar}}" mode="aspectFill" />
         <view wx:else class="me-ava-ph"></view>
@@ -21,34 +25,29 @@
   <scroll-view class="stream" scroll-y scroll-into-view="{{toView}}" scroll-with-animation>
     <view wx:for="{{messages}}" wx:key="id" id="m{{item.id}}" class="row {{item.role === 'user' ? 'me' : 'ai'}}">
 
-      <!-- user bubble -->
       <block wx:if="{{item.role === 'user'}}">
         <view class="bubble me-bubble">{{item.text}}</view>
         <image wx:if="{{userAvatar}}" class="av" src="{{userAvatar}}" mode="aspectFill" />
         <view wx:else class="av av-u"></view>
       </block>
 
-      <!-- agent message -->
       <block wx:else>
-        <view class="av av-ai">✨</view>
+        <view class="av av-ai"><image class="av-ai-img" src="/assets/icons/sparkles-white.svg" /></view>
         <view class="bubble ai-bubble">
 
-          <!-- text -->
           <view wx:if="{{item.ctype === 'text'}}" class="txt">{{item.text}}</view>
 
-          <!-- tool_call -->
-          <view wx:elif="{{item.ctype === 'toolcall'}}" class="toolcall">🔧 调用 {{item.label}}</view>
+          <view wx:elif="{{item.ctype === 'toolcall'}}" class="toolcall"><image class="tc-img" src="/assets/icons/wrench-blue.svg" />{{t.calling}}{{item.label}}</view>
 
-          <!-- analysis_progress -->
           <view wx:elif="{{item.ctype === 'progress'}}" class="progress">
-            <view>🔎 {{item.label}}</view>
+            <view class="prog-head"><image class="prog-img" src="/assets/icons/search-blue.svg" />{{item.label}}</view>
             <view class="pbar"><view class="pbar-i"></view></view>
-            <view class="pstep">已扫描 {{item.scanned}} / {{item.total}} · 完成</view>
+            <view class="pstep">{{t.scanned}} {{item.scanned}} / {{item.total}} · {{t.done}}</view>
           </view>
 
           <!-- ot_breakdown -->
           <view wx:elif="{{item.ctype === 'ot_breakdown'}}" class="a2ui">
-            <view class="a2-h">📊 {{item.title}}<text class="a2-badge">A2UI · ot_breakdown</text></view>
+            <view class="a2-h"><image class="a2-img" src="/assets/icons/chart-blue.svg" />{{item.title}}<text class="a2-badge">A2UI · ot_breakdown</text></view>
             <view class="a2-b">
               <block wx:for="{{item.people}}" wx:for-item="p" wx:for-index="pi" wx:key="name">
                 <view class="hbar {{item.open === p.name ? 'hbar-open' : ''}}" data-i="{{index}}" data-name="{{p.name}}" bindtap="toggleDrill">
@@ -62,44 +61,44 @@
                   </view>
                 </view>
               </block>
-              <view class="drill-hint">↳ 点任意一行下钻到逐日打卡明细</view>
+              <view class="drill-hint">{{t.drillHint}}</view>
             </view>
           </view>
 
           <!-- ot_approval -->
           <view wx:elif="{{item.ctype === 'ot_approval'}}" class="a2ui">
-            <view class="a2-h">📝 OT 审批 · {{item.pending.name}}<text class="a2-badge">A2UI · ot_approval</text></view>
+            <view class="a2-h"><image class="a2-img" src="/assets/icons/filetext-blue.svg" />OT · {{item.pending.name}}<text class="a2-badge">A2UI · ot_approval</text></view>
             <view class="a2-b">
-              <view class="aline"><text class="al-k">部门</text><text>{{item.pending.dept}}</text></view>
-              <view class="aline"><text class="al-k">日期</text><text>{{item.pending.date}}</text></view>
-              <view class="aline"><text class="al-k">时长</text><text class="b">{{item.pending.hours}} 小时</text></view>
-              <view class="aline"><text class="al-k">事由</text><text>{{item.pending.reason}}</text></view>
-              <view wx:if="{{item.pending.flag}}" class="aflag">⚠️ AI 提醒:{{item.pending.flag}}</view>
+              <view class="aline"><text class="al-k">{{t.kDept}}</text><text>{{item.pending.dept}}</text></view>
+              <view class="aline"><text class="al-k">{{t.kDate}}</text><text>{{item.pending.date}}</text></view>
+              <view class="aline"><text class="al-k">{{t.kHours}}</text><text class="b">{{item.pending.hours}}{{t.hoursUnit}}</text></view>
+              <view class="aline"><text class="al-k">{{t.kReason}}</text><text>{{item.pending.reason}}</text></view>
+              <view wx:if="{{item.pending.flag}}" class="aflag"><image class="aflag-img" src="/assets/icons/alert-amber.svg" /><text>{{t.aiNote}}{{item.pending.flag}}</text></view>
               <view wx:if="{{!item.pending.status}}" class="abtns">
-                <button class="bb ok" size="mini" data-i="{{index}}" bindtap="approve">✓ 批准</button>
-                <button class="bb no" size="mini" data-i="{{index}}" bindtap="reject">驳回</button>
+                <button class="bb ok" size="mini" data-i="{{index}}" bindtap="approve">{{t.approve}}</button>
+                <button class="bb no" size="mini" data-i="{{index}}" bindtap="reject">{{t.reject}}</button>
               </view>
               <view wx:else class="adone {{item.pending.status === 'approved' ? 'adone-ok' : 'adone-no'}}">
-                {{item.pending.status === 'approved' ? '✓ 已批准' : '已驳回'}}
+                {{item.pending.status === 'approved' ? t.approved : t.rejected}}
               </view>
             </view>
           </view>
 
           <!-- anomaly_alert -->
           <view wx:elif="{{item.ctype === 'anomaly_alert'}}" class="a2ui">
-            <view class="a2-h">⚠️ AI 异常检测<text class="a2-badge">A2UI · anomaly_alert</text></view>
+            <view class="a2-h"><image class="a2-img" src="/assets/icons/alert-red.svg" />{{t.anomalyTitle}}<text class="a2-badge">A2UI · anomaly_alert</text></view>
             <view class="a2-b">
               <view wx:for="{{item.items}}" wx:for-item="a" wx:key="id" class="alert {{a.severity === 'high' ? 'alert-red' : 'alert-amber'}}">
                 <view class="dot {{a.severity === 'high' ? 'dot-red' : 'dot-amber'}}"></view>
                 <view class="c"><view class="t">{{a.title}}</view><view class="why">{{a.why}}<text class="ai">{{a.ai}}</text></view></view>
-                <view class="sev {{a.severity === 'high' ? 'sev-high' : 'sev-mid'}}">{{a.severity === 'high' ? '高' : '中'}}</view>
+                <view class="sev {{a.severity === 'high' ? 'sev-high' : 'sev-mid'}}">{{a.severity === 'high' ? t.high : t.mid}}</view>
               </view>
             </view>
           </view>
 
           <!-- proactive -->
           <view wx:elif="{{item.ctype === 'proactive'}}" class="proact">
-            <view class="ptext">💡 {{item.text}}</view>
+            <view class="proact-row"><image class="proact-img" src="/assets/icons/sparkles-blue.svg" /><view class="ptext">{{item.text}}</view></view>
             <view class="chips">
               <view wx:for="{{item.chips}}" wx:for-item="c" wx:for-index="ci" wx:key="label"
                     class="chip {{c.solid ? 'chip-solid' : ''}} {{item.done ? 'chip-off' : ''}}"
@@ -109,19 +108,19 @@
 
           <!-- generated_dashboard -->
           <view wx:elif="{{item.ctype === 'generated_dashboard'}}" class="a2ui">
-            <view class="a2-h">🧩 {{item.title}}(AI 生成)<text class="a2-badge">A2UI · generated_dashboard</text></view>
+            <view class="a2-h"><image class="a2-img" src="/assets/icons/dashboard-blue.svg" />{{item.title}}{{t.aiGen}}<text class="a2-badge">A2UI · generated_dashboard</text></view>
             <view class="a2-b">
               <view class="gtiles">
-                <view wx:for="{{item.tiles}}" wx:for-item="t" wx:key="label" class="gtile">
-                  <view class="gl">{{t.label}}</view>
-                  <view class="gv {{t.danger ? 'danger' : ''}}">{{t.value}}</view>
+                <view wx:for="{{item.tiles}}" wx:for-item="gt" wx:key="label" class="gtile">
+                  <view class="gl">{{gt.label}}</view>
+                  <view class="gv {{gt.danger ? 'danger' : ''}}">{{gt.value}}</view>
                 </view>
               </view>
               <view class="mini-bars">
                 <view wx:for="{{item.series}}" wx:for-item="v" wx:key="*this" class="mb" style="height: {{v}}%"></view>
               </view>
               <button class="pinbtn" size="mini" disabled="{{item.pinned}}" data-i="{{index}}" bindtap="pin">
-                {{item.pinned ? '✓ 已钉到首页' : '📌 钉到首页看板'}}
+                <image wx:if="{{!item.pinned}}" class="pin-img" src="/assets/icons/pin-white.svg" />{{item.pinned ? t.pinned : t.pinHome}}
               </button>
             </view>
           </view>
@@ -130,22 +129,21 @@
       </block>
     </view>
 
-    <!-- typing -->
     <view wx:if="{{streaming}}" class="row ai">
-      <view class="av av-ai">✨</view>
+      <view class="av av-ai"><image class="av-ai-img" src="/assets/icons/sparkles-white.svg" /></view>
       <view class="typing"><view class="td"></view><view class="td"></view><view class="td"></view></view>
     </view>
     <view id="mbottom" style="height: 20rpx"></view>
   </scroll-view>
 
-  <!-- recording overlay (visual only; touch stays on the talk bar) -->
+  <!-- recording overlay -->
   <view wx:if="{{recording}}" class="rec-overlay">
     <view class="rec-card {{cancelling ? 'rec-cancel' : ''}}">
       <view class="rec-mic">{{cancelling ? '✕' : '🎙'}}</view>
       <view wx:if="{{!cancelling}}" class="rec-wave">
         <view class="wv"></view><view class="wv"></view><view class="wv"></view><view class="wv"></view><view class="wv"></view>
       </view>
-      <view class="rec-tip">{{cancelling ? '松开手指,取消' : '上滑取消'}}</view>
+      <view class="rec-tip">{{cancelling ? t.recTipCancel : t.recTipUp}}</view>
     </view>
   </view>
 
@@ -158,10 +156,10 @@
       <view class="mic" bindtap="toggleVoiceMode">{{voiceMode ? '⌨️' : '🎤'}}</view>
       <view wx:if="{{voiceMode}}" class="talk {{recording ? (cancelling ? 'talk-cancel' : 'talk-on') : ''}}"
             bindtouchstart="recStart" bindtouchmove="recMove" bindtouchend="recEnd" bindtouchcancel="recEnd">
-        {{recording ? (cancelling ? '松开取消' : '松开 发送') : '按住 说话'}}
+        {{recording ? (cancelling ? t.talkCancel : t.talkSend) : t.talkIdle}}
       </view>
       <block wx:else>
-        <input class="inp" value="{{input}}" placeholder="问问考勤的任何问题…" confirm-type="send"
+        <input class="inp" value="{{input}}" placeholder="{{t.inputPlaceholder}}" confirm-type="send"
                bindinput="onInput" bindconfirm="onSendTap" />
         <button class="send" size="mini" disabled="{{streaming || !input}}" bindtap="onSendTap">↑</button>
       </block>

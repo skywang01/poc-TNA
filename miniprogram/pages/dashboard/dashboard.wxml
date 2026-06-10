@@ -1,28 +1,34 @@
 <view class="page">
 
-  <!-- ① AI 智能摘要 -->
+  <!-- language toggle -->
+  <view class="langbar">
+    <view class="seg {{locale==='zh'?'on':''}}" data-l="zh" bindtap="switchLang">中</view>
+    <view class="seg {{locale==='en'?'on':''}}" data-l="en" bindtap="switchLang">EN</view>
+  </view>
+
+  <!-- ① AI summary -->
   <view class="summary">
-    <view class="spark">✨</view>
+    <view class="spark"><image class="spark-img" src="/assets/icons/sparkles-white.svg" /></view>
     <view class="stxt">
-      <view class="tag">AI 智能摘要 · Opus 生成</view>
-      <view class="sline">本月出勤率 <text class="b">{{aiSummary.attendance}}</text>(环比 <text class="up">↑{{aiSummary.attendanceDelta}}</text>),整体健康。{{aiSummary.otDept}} OT <text class="b">同比 {{aiSummary.otDelta}}</text>,逼近预算上限。检测到 <text class="risk">{{aiSummary.anomalies}} 处异常</text> 与 <text class="risk">{{aiSummary.risks}} 项合规风险</text>。</view>
+      <view class="tag">{{t.summaryTag}}</view>
+      <view class="sline">{{aiSummary.summaryLine}}</view>
       <view class="sactions">
-        <button class="btn btn-primary" size="mini" data-q="汇总本月所有异常和合规风险" bindtap="askAI">查看全部风险</button>
-        <button class="btn btn-ghost" size="mini" data-q="分析研发部 OT 为什么飙升,谁加班最多?" bindtap="askAI">让 AI 深入分析 →</button>
+        <button class="btn btn-primary" size="mini" data-q="{{t.qViewRisks}}" bindtap="askAI">{{t.viewRisks}}</button>
+        <button class="btn btn-ghost" size="mini" data-q="{{t.qDeepDive}}" bindtap="askAI">{{t.deepDive}}</button>
       </view>
     </view>
   </view>
 
   <!-- pinned dashboards from chat -->
   <view wx:if="{{pinned.length}}" class="pinned-wrap">
-    <view class="pinned-head">📌 从 AI 助手钉来的看板</view>
+    <view class="pinned-head"><image class="pinned-head-img" src="/assets/icons/pin-blue.svg" />{{t.pinnedHead}}</view>
     <view wx:for="{{pinned}}" wx:key="title" class="card pinned-card">
-      <view class="unpin" data-i="{{index}}" bindtap="unpin">✕</view>
+      <view class="unpin" data-i="{{index}}" bindtap="unpin"><image class="unpin-img" src="/assets/icons/x-slate.svg" /></view>
       <view class="pinned-title">{{item.title}}</view>
       <view class="gtiles">
-        <view wx:for="{{item.tiles}}" wx:for-item="t" wx:key="label" class="gtile">
-          <view class="gl">{{t.label}}</view>
-          <view class="gv {{t.danger ? 'danger' : ''}}">{{t.value}}</view>
+        <view wx:for="{{item.tiles}}" wx:for-item="t2" wx:key="label" class="gtile">
+          <view class="gl">{{t2.label}}</view>
+          <view class="gv {{t2.danger ? 'danger' : ''}}">{{t2.value}}</view>
         </view>
       </view>
       <view class="mini-bars">
@@ -42,7 +48,7 @@
 
   <!-- OT by dept -->
   <view class="card">
-    <view class="card-title"><view class="ic ic-chart">📊</view>OT 工时 · 部门对比</view>
+    <view class="card-title"><view class="ic ic-chart"><image class="cic" src="/assets/icons/chart-blue.svg" /></view>{{t.otByDept}}</view>
     <view class="bars">
       <view wx:for="{{deptOt}}" wx:key="dept" class="bar-col">
         <view class="bar" style="height: {{item.pct * 2.2}}rpx"></view>
@@ -53,41 +59,44 @@
 
   <!-- trend sparkline -->
   <view class="card">
-    <view class="card-title"><view class="ic ic-chart">📈</view>出勤趋势(近 7 周)</view>
+    <view class="card-title"><view class="ic ic-chart"><image class="cic" src="/assets/icons/activity-blue.svg" /></view>{{t.trendTitle}}</view>
     <view class="spark-bars">
       <view wx:for="{{trend}}" wx:key="*this" class="sb" style="height: {{item / trendMax * 120}}rpx"></view>
     </view>
   </view>
 
-  <!-- ② AI 异常检测 -->
+  <!-- ② AI anomaly detection -->
   <view class="card">
-    <view class="card-title"><view class="ic ic-warn">⚠️</view>AI 异常检测<text class="count">{{anomalies.length}} 项</text></view>
+    <view class="card-title"><view class="ic ic-warn"><image class="cic" src="/assets/icons/alert-red.svg" /></view>{{t.anomalyTitle}}<text class="count">{{anomalies.length}} {{t.items}}</text></view>
     <view wx:for="{{anomalies}}" wx:key="id" class="alert {{item.severity === 'high' ? 'alert-red' : 'alert-amber'}}"
-          data-q="深入分析:{{item.title}}" bindtap="askAI">
+          data-q="{{t.deepPrefix}}{{item.title}}" bindtap="askAI">
       <view class="dot {{item.severity === 'high' ? 'dot-red' : 'dot-amber'}}"></view>
       <view class="c">
         <view class="t">{{item.title}}</view>
         <view class="why">{{item.why}}<text class="ai">{{item.ai}}</text></view>
       </view>
-      <view class="sev {{item.severity === 'high' ? 'sev-high' : 'sev-mid'}}">{{item.severity === 'high' ? '高' : '中'}}</view>
+      <view class="sev {{item.severity === 'high' ? 'sev-high' : 'sev-mid'}}">{{item.severity === 'high' ? t.high : t.mid}}</view>
     </view>
   </view>
 
-  <!-- ③ 合规风控 -->
+  <!-- ③ compliance risk -->
   <view class="card">
-    <view class="card-title"><view class="ic ic-law">⚖️</view>合规风控<text class="count">{{compliance.length}} 项</text></view>
+    <view class="card-title"><view class="ic ic-law"><image class="cic" src="/assets/icons/scale-amber.svg" /></view>{{t.complianceTitle}}<text class="count">{{compliance.length}} {{t.items}}</text></view>
     <view wx:for="{{compliance}}" wx:key="id" class="alert {{item.severity === 'high' ? 'alert-red' : 'alert-amber'}}"
-          data-q="深入分析:{{item.title}}" bindtap="askAI">
+          data-q="{{t.deepPrefix}}{{item.title}}" bindtap="askAI">
       <view class="dot {{item.severity === 'high' ? 'dot-red' : 'dot-amber'}}"></view>
       <view class="c">
         <view class="t">{{item.title}}</view>
         <view class="why">{{item.why}}<text class="ai">{{item.ai}}</text></view>
       </view>
-      <view class="sev {{item.severity === 'high' ? 'sev-high' : 'sev-mid'}}">{{item.severity === 'high' ? '高' : '中'}}</view>
+      <view class="sev {{item.severity === 'high' ? 'sev-high' : 'sev-mid'}}">{{item.severity === 'high' ? t.high : t.mid}}</view>
     </view>
   </view>
 
 </view>
 
-<!-- floating 问 AI -->
-<view class="fab" data-q="" bindtap="askAI">✨</view>
+<!-- floating Ask AI -->
+<view class="fab" data-q="" bindtap="askAI">
+  <image class="fab-img" src="/assets/icons/sparkles-white.svg" />
+  <text class="fab-label">{{t.fabLabel}}</text>
+</view>
