@@ -20,8 +20,8 @@ const STRINGS = {
 
     // dashboard
     summaryTag: "AI SUMMARY · BY OPUS",
-    viewRisks: "View all risks",
-    deepDive: "Ask AI to analyze →",
+    viewRisks: "View risks",
+    deepDive: "Analyze with AI →",
     pinnedHead: "Pinned from AI Assistant",
     otByDept: "OT Hours · by Department",
     trendTitle: "Attendance Trend (last 7 wks)",

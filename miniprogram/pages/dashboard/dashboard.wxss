@@ -33,8 +33,8 @@
 .sline .b { color: #fff; font-weight: 600; }
 .sline .up { color: #7EE0A8; font-weight: 600; }
 .sline .risk { color: #FFB4AB; font-weight: 600; }
-.sactions { display: flex; gap: 16rpx; margin-top: 18rpx; }
-.sactions .btn { margin: 0; }
+.sactions { display: flex; flex-wrap: wrap; gap: 14rpx; margin-top: 18rpx; }
+.sactions .btn { margin: 0; white-space: nowrap; font-size: 24rpx; padding: 14rpx 22rpx; line-height: 1.2; }
 /* recolor the band's buttons so they read on dark navy */
 .summary .btn-primary { background: #fff; color: #20307D; }
 .summary .btn-ghost { background: rgba(255,255,255,.12); color: #fff; border: 1rpx solid rgba(255,255,255,.32); }

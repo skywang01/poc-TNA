@@ -4,11 +4,31 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-An **"AI for Attendance" POC** (考勤 AI) — a React + Vite + TypeScript single-page demo showing
-a closed loop between a **Dashboard** and an **AI Chatbot**. Actions taken in the chat (approve
-OT, pin a generated dashboard) reflect on the dashboard, and dashboard tiles deep-link into the
-chat with a pre-filled question. The chat can run against a scripted mock or the real BIPO Agent
-platform (`bipo-ai-service`) without any UI changes.
+An **"AI for Attendance" POC** (考勤 AI) showing a closed loop between a **Dashboard** and an
+**AI Chatbot**. Actions taken in the chat (approve OT, pin a generated dashboard) reflect on the
+dashboard, and dashboard tiles deep-link into the chat with a pre-filled question. The chat can run
+against a scripted mock or the real BIPO Agent platform (`bipo-ai-service`) without any UI changes.
+
+## Two app entries
+
+This repo ships the **same POC on two independent app entries**, each a self-contained build that
+talks to the same backend contract:
+
+```
+TNA-POC/
+├── src/  + index.html + vite.config.ts   ← ① Web app    (React + Vite + TypeScript)
+├── miniprogram/                          ← ② Mini app   (WeChat 小程序, native WXML/WXSS/JS)
+│   ├── app.json        (pages: dashboard, chat; tabBar: AI Board / AI Assistant)
+│   └── utils/engine.js (mock | real over wx.request — mirrors the web AIEngine seam)
+├── deploy-miniprogram.cjs                ← headless 小程序 upload via miniprogram-ci
+└── package.json                          ← Vite scripts (web) + miniprogram-ci dep (mini app)
+```
+
+Both entries implement the **same two screens (Dashboard + Chat)** and the **same A2UI-driven
+experience** against the **same `bipo-ai-service` agent contract** — they differ only in platform
+and rendering tech (React components vs. WXML pages). The web app is the reference implementation;
+the mini app is the WeChat-native port. When changing shared behavior (message protocol, A2UI card
+types, mock scripts), keep the two in sync.
 
 ## Product vision
 
@@ -29,15 +49,24 @@ experience delivered across platforms. This POC is the first concrete exploratio
 
 ## Commands
 
+**① Web app** (React + Vite):
+
 ```bash
 npm run dev       # Vite dev server on :5180 (host exposed, all hosts allowed)
 npm run build     # tsc -b (typecheck, noEmit) then vite build -> dist/
 npm run preview   # serve the built dist/
 ```
 
-There is no test runner, linter, or CI configured. `tsc -b` (via `npm run build`) is the only
-correctness gate — TypeScript is `strict`. Manual verification is done in-browser (see the
-`verify-*.png` screenshots in the repo root).
+**② Mini app** (WeChat 小程序): open the `miniprogram/` dir in WeChat DevTools, or upload headlessly:
+
+```bash
+node deploy-miniprogram.cjs [version] [desc]   # upload via miniprogram-ci (needs ./private.<appid>.key)
+```
+
+There is no test runner, linter, or CI configured. For the web app, `tsc -b` (via `npm run build`)
+is the only correctness gate — TypeScript is `strict`. The mini app is plain JS with no build step.
+Manual verification is done in-browser / in DevTools (see the `verify-*.png` screenshots in the repo
+root).
 
 ## Architecture
 
