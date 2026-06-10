@@ -138,16 +138,33 @@
     <view id="mbottom" style="height: 20rpx"></view>
   </scroll-view>
 
+  <!-- recording overlay (visual only; touch stays on the talk bar) -->
+  <view wx:if="{{recording}}" class="rec-overlay">
+    <view class="rec-card {{cancelling ? 'rec-cancel' : ''}}">
+      <view class="rec-mic">{{cancelling ? '✕' : '🎙'}}</view>
+      <view wx:if="{{!cancelling}}" class="rec-wave">
+        <view class="wv"></view><view class="wv"></view><view class="wv"></view><view class="wv"></view><view class="wv"></view>
+      </view>
+      <view class="rec-tip">{{cancelling ? '松开手指,取消' : '上滑取消'}}</view>
+    </view>
+  </view>
+
   <!-- composer -->
   <view class="composer">
     <scroll-view class="sug" scroll-x>
       <view wx:for="{{suggestions}}" wx:key="*this" class="q" data-q="{{item}}" bindtap="onSuggest">{{item}}</view>
     </scroll-view>
     <view class="box">
-      <view class="mic" bindtap="onVoiceTap">🎤</view>
-      <input class="inp" value="{{input}}" focus="{{inputFocus}}" placeholder="问问考勤的任何问题…" confirm-type="send"
-             bindinput="onInput" bindfocus="onInputFocus" bindblur="onInputBlur" bindconfirm="onSendTap" />
-      <button class="send" size="mini" disabled="{{streaming || !input}}" bindtap="onSendTap">↑</button>
+      <view class="mic" bindtap="toggleVoiceMode">{{voiceMode ? '⌨️' : '🎤'}}</view>
+      <view wx:if="{{voiceMode}}" class="talk {{recording ? (cancelling ? 'talk-cancel' : 'talk-on') : ''}}"
+            bindtouchstart="recStart" bindtouchmove="recMove" bindtouchend="recEnd" bindtouchcancel="recEnd">
+        {{recording ? (cancelling ? '松开取消' : '松开 发送') : '按住 说话'}}
+      </view>
+      <block wx:else>
+        <input class="inp" value="{{input}}" placeholder="问问考勤的任何问题…" confirm-type="send"
+               bindinput="onInput" bindconfirm="onSendTap" />
+        <button class="send" size="mini" disabled="{{streaming || !input}}" bindtap="onSendTap">↑</button>
+      </block>
     </view>
   </view>
 </view>

@@ -1,4 +1,5 @@
 const engine = require("../../utils/engine");
+const CFG = require("../../utils/config");
 const app = getApp();
 
 const SUGGESTIONS = ["研发部谁 OT 最多?", "帮我审批待处理的 OT", "给我看异常打卡", "做个研发部 OT 看板"];
@@ -7,9 +8,11 @@ Page({
   data: {
     messages: [],
     input: "",
-    inputFocus: false,
     userAvatar: "",   // real WeChat avatar chosen via open-type="chooseAvatar"
     streaming: false,
+    voiceMode: false,   // composer in "按住说话" mode
+    recording: false,
+    cancelling: false,  // finger slid up to cancel
     suggestions: SUGGESTIONS,
     toView: "",
     seq: 0,
@@ -19,6 +22,20 @@ Page({
     const saved = wx.getStorageSync("userAvatar");
     if (saved) this.setData({ userAvatar: saved });
     this.push({ role: "ai", ctype: "text", text: "你好,我是 Attendance AI。问我考勤、加班、异常或合规的任何问题,我也能帮你生成看板。" });
+
+    // press-to-talk recorder
+    const rec = wx.getRecorderManager();
+    this._rec = rec;
+    rec.onStop((res) => {
+      this.setData({ recording: false, cancelling: false });
+      if (this._cancelled) return;
+      if (!res || res.duration < 800) { wx.showToast({ title: "说话时间太短", icon: "none" }); return; }
+      this.doStt(res.tempFilePath);
+    });
+    rec.onError(() => {
+      this.setData({ recording: false, cancelling: false });
+      wx.showToast({ title: "录音失败,请检查麦克风权限", icon: "none" });
+    });
   },
 
   // Real WeChat avatar picker (open-type="chooseAvatar"). Persist a local copy
@@ -52,18 +69,54 @@ Page({
 
   onInput(e) { this.setData({ input: e.detail.value }); },
 
-  // Voice input. Focuses the field so the system keyboard's built-in
-  // speech-to-text (🎤) can be used — works on unverified accounts today.
-  // Once the mini program is 微信认证, swap this for the WechatSI plugin
-  // (requirePlugin('WechatSI').getRecordRecognitionManager()) for in-app
-  // press-to-talk recognition. (Plugin needs adding in 后台→插件管理, which
-  // requires 认证.)
-  onVoiceTap() {
-    this.setData({ inputFocus: true });
-    wx.showToast({ title: "点键盘上的 🎤 说话转文字", icon: "none", duration: 2000 });
+  // ---- 按住说话:录音 → 腾讯云 ASR(/api/stt)→ 文字 → 发送 ----
+  toggleVoiceMode() { this.setData({ voiceMode: !this.data.voiceMode }); },
+
+  recStart(e) {
+    if (this.data.streaming) return;
+    this._cancelled = false;
+    this._startY = (e.touches && e.touches[0] && e.touches[0].clientY) || 0;
+    this.setData({ recording: true, cancelling: false });
+    this._rec.start({ format: "mp3", sampleRate: 16000, numberOfChannels: 1, duration: 60000 });
   },
-  onInputFocus() {},
-  onInputBlur() { this.setData({ inputFocus: false }); },
+  recMove(e) {
+    if (!this.data.recording) return;
+    const y = (e.touches && e.touches[0] && e.touches[0].clientY) || 0;
+    const cancelling = this._startY - y > 80; // slid up > 80px
+    if (cancelling !== this.data.cancelling) this.setData({ cancelling });
+  },
+  recEnd() {
+    if (!this.data.recording) return;
+    this._cancelled = this.data.cancelling;
+    this._rec.stop(); // onStop handler does the rest
+  },
+
+  // upload recorded audio to backend STT (Tencent ASR), then send the text
+  doStt(filePath) {
+    wx.showLoading({ title: "识别中…", mask: true });
+    const fs = wx.getFileSystemManager();
+    fs.readFile({
+      filePath,
+      encoding: "base64",
+      success: (r) => {
+        wx.request({
+          url: CFG.baseUrl + "/api/stt",
+          method: "POST",
+          timeout: 30000,
+          header: { "content-type": "application/json", "x-service-key": CFG.serviceKey },
+          data: { audio: r.data, format: "mp3" },
+          success: (res) => {
+            wx.hideLoading();
+            const text = res.data && (res.data.text || res.data.result);
+            if (text) { this.setData({ voiceMode: false }); this.send(text); }
+            else { wx.showToast({ title: "没听清,再说一次", icon: "none" }); }
+          },
+          fail: () => { wx.hideLoading(); wx.showToast({ title: "语音服务未就绪", icon: "none" }); },
+        });
+      },
+      fail: () => { wx.hideLoading(); wx.showToast({ title: "读取录音失败", icon: "none" }); },
+    });
+  },
 
   onSendTap() {
     const q = this.data.input;
