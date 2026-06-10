@@ -4,14 +4,14 @@
     "pages/chat/chat"
   ],
   "window": {
-    "navigationBarBackgroundColor": "#4f46e5",
+    "navigationBarBackgroundColor": "#20307D",
     "navigationBarTextStyle": "white",
     "navigationBarTitleText": "BIPO Attendance AI",
-    "backgroundColor": "#eef0f4"
+    "backgroundColor": "#F5F7FB"
   },
   "tabBar": {
-    "color": "#94a3b8",
-    "selectedColor": "#4f46e5",
+    "color": "#8C95A8",
+    "selectedColor": "#20307D",
     "backgroundColor": "#ffffff",
     "borderStyle": "white",
     "list": [
