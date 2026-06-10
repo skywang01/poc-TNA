@@ -8,10 +8,6 @@
         <view class="mh-sub">{{t.chatSub}}</view>
       </view>
     </view>
-    <view class="langbar">
-      <view class="seg {{locale==='zh'?'on':''}}" data-l="zh" bindtap="switchLang">中</view>
-      <view class="seg {{locale==='en'?'on':''}}" data-l="en" bindtap="switchLang">EN</view>
-    </view>
     <view class="mh-right">
       <view wx:if="{{!userAvatar}}" class="ava-tip">{{t.avaTip}}</view>
       <button class="me-ava-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">

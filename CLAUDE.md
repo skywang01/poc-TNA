@@ -10,6 +10,23 @@ OT, pin a generated dashboard) reflect on the dashboard, and dashboard tiles dee
 chat with a pre-filled question. The chat can run against a scripted mock or the real BIPO Agent
 platform (`bipo-ai-service`) without any UI changes.
 
+## Product vision
+
+We are reimagining how **client HR** and **client EE** experience BIPO products. Instead of the
+traditional UI (navigating menus, filling forms, reading tables), users interact with the system
+through **AI — specifically A2UI**: the AI directly operates the system on their behalf and renders
+generative, interactive UI cards (A2UI) inline in the conversation.
+
+```
+传统形态                              新形态（本 POC 探索的方向）
+─────────                            ──────────────────────────
+[用户] → [菜单] → [表单] → [表格]     [用户] → [对话/AI] → [A2UI 卡片]
+        手动逐级操作 UI                     AI 直接操作系统并生成 UI
+```
+
+This applies to **both web and mini app (小程序)** form factors — the same AI-first, A2UI-driven
+experience delivered across platforms. This POC is the first concrete exploration of that direction.
+
 ## Commands
 
 ```bash

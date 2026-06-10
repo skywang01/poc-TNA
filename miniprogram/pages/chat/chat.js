@@ -61,13 +61,6 @@ Page({
       wx.setTabBarItem({ index: 1, text: s.tabChat });
     }
   },
-  switchLang(e) {
-    const locale = e.currentTarget.dataset.l;
-    if (locale === this.data.locale) return;
-    i18n.setLocale(locale);
-    this.applyLocale(locale);
-  },
-
   onChooseAvatar(e) {
     const tmp = e.detail && e.detail.avatarUrl;
     if (!tmp) return;
