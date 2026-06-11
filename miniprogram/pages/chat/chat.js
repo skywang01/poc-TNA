@@ -173,6 +173,76 @@ Page({
   onSendTap() { const q = this.data.input; this.setData({ input: "" }); this.send(q); },
   onSuggest(e) { this.send(e.currentTarget.dataset.q); },
 
+  // 未操作交互卡的快照:用户不点按钮、直接用语音/文字确认时,把卡片当前
+  // 字段(含用户在卡上的修改)作为 marker 带给 agent,等同卡片确认。
+  pendingCardMarker() {
+    const msgs = this.data.messages;
+    for (let k = msgs.length - 1; k >= 0; k--) {
+      const m = msgs[k];
+      if (m.status !== "pending") continue;
+      if (m.ctype === "ot_request") {
+        return "[pending_card: ot_request date=" + m.date + " start=" + m.start + " end=" + m.end +
+          " hours=" + m.hours + " otType=" + (m.otType === "leave" ? "leave" : "pay") +
+          ((m.reason || "").trim() ? " reason=" + m.reason.trim() : "") + "]";
+      }
+      if (m.ctype === "leave_request") {
+        return "[pending_card: leave_request leave_code=" + m.leaveTypes[m.typeIndex].code +
+          " start_date=" + m.startDate + " end_date=" + m.endDate +
+          (m.halfDay ? " half_start=" + (m.halfStart || "FULL") + " half_end=" + ((m.singleDay ? m.halfStart : m.halfEnd) || "FULL") : "") +
+          (m.empCode ? " employee_code=" + m.empCode : "") + "]";
+      }
+      if (m.ctype === "clock_punch") {
+        const now = new Date();
+        const p2 = (n) => (n < 10 ? "0" + n : "" + n);
+        return "[pending_card: clock_punch type=" + (m.punchType || "in") +
+          " time=" + p2(now.getHours()) + ":" + p2(now.getMinutes()) +
+          (m.loc ? " loc=" + m.loc.lat.toFixed(4) + "," + m.loc.lng.toFixed(4) : "") + "]";
+      }
+    }
+    return "";
+  },
+  // agent 真调了对应工具(语音确认路径)→ 把还在 pending 的卡自动置为完成
+  resolvePendingByTool(raw, input) {
+    const s = (raw || "").toLowerCase();
+    if (/approve_ot_request/.test(s)) return this.resolveApprovedRows(raw, input);
+    let type = null;
+    if (/submit_ot_request/.test(s)) type = "ot_request";
+    else if (/submit_leave_request|leave_request/.test(s)) type = "leave_request";
+    else if (/clock_punch/.test(s)) type = "clock_punch";
+    if (!type) return;
+    const msgs = this.data.messages;
+    for (let k = msgs.length - 1; k >= 0; k--) {
+      if (msgs[k].ctype === type && msgs[k].status === "pending") {
+        this.setData({ ["messages[" + k + "].status"]: "done" });
+        return;
+      }
+    }
+  },
+  // approve_ot_request 调用 → 按 recordID 把表格行 / 单卡状态自动回写
+  // (语音审批路径:用户没点行内按钮,状态跟着真实工具调用走)
+  resolveApprovedRows(raw, input) {
+    const ids = [];
+    if (input) {
+      const v = input.recordID || input.record_id || input.recordId || input.id;
+      if (v != null) ids.push(String(v));
+    }
+    // mock 兜底:label 形如 "...approve_ot_request(id=ot-zs, action=approve)"
+    if (!ids.length) (String(raw).match(/id=([\w-]+)/g) || []).forEach((x) => ids.push(x.slice(3)));
+    if (!ids.length) return;
+    const action = /reject/i.test(String(raw) + JSON.stringify(input || {})) ? "rejected" : "approved";
+    const patch = {};
+    this.data.messages.forEach((m, mi) => {
+      if (m.ctype === "ot_pending_list" && m.items) {
+        m.items.forEach((r, ri) => {
+          if (!r.status && ids.indexOf(String(r.id)) !== -1) patch["messages[" + mi + "].items[" + ri + "].status"] = action;
+        });
+      } else if (m.ctype === "ot_approval" && m.pending && !m.pending.status && ids.indexOf(String(m.pending.id)) !== -1) {
+        patch["messages[" + mi + "].pending.status"] = action;
+      }
+    });
+    if (Object.keys(patch).length) this.setData(patch);
+  },
+
   send(query) {
     const q = (query || "").trim();
     if (!q || this.data.streaming) return;
@@ -180,7 +250,8 @@ Page({
     this.setData({ streaming: true });
     // 发起时锁定角色:串流途中切了角色,旧角色的回复直接丢弃,不污染新会话
     const sendRole = app.globalData.role;
-    engine.invoke(q, {
+    const marker = this.pendingCardMarker();
+    engine.invoke(marker ? q + "\n" + marker : q, {
       onMessage: (m) => {
         if (app.globalData.role !== sendRole) return;
         if (m.ctype === "toolcall") {
@@ -188,6 +259,7 @@ Page({
           m.raw = m.label;
           m.label = this.humanizeTool(m.raw);
           this.push(m);
+          this.resolvePendingByTool(m.raw, m.input);
         } else if (m.ctype === "clock_punch") {
           // 时间/地点是设备的事实,agent 不可靠:到端即用本机时间覆盖,并发起定位
           this.prepPunch(m);
@@ -197,7 +269,12 @@ Page({
           // 默认日期取本机今天;agent 给了预填值(date/start/end/otType)则尊重
           this.prepOtForm(m);
           this.push(m);
+        } else if (m.ctype === "leave_request") {
+          this.prepLeaveForm(m);
+          this.push(m);
         } else {
+          // 端上不渲染 markdown:文本消息统一清洗(**加粗** 去标记,* 列表 → •)
+          if (m.ctype === "text" && m.text) m.text = this.stripMd(m.text);
           this.push(m);
         }
       },
@@ -224,6 +301,14 @@ Page({
     });
   },
 
+  // markdown 兜底清洗:气泡是纯文本,prompt 也禁了 markdown,这里防漏网
+  stripMd(s) {
+    return String(s)
+      .replace(/\*\*([^*]+)\*\*/g, "$1")        // **bold** -> bold
+      .replace(/^([ \t]*)[*-]\s+/gm, "$1• ")    // */- 列表 -> •(保留缩进层级)
+      .replace(/^#{1,4}\s+/gm, "");             // # 标题标记去掉
+  },
+
   // 工具名 -> 用户可读的状态文案(按业务关键词匹配,新工具不认识就走兜底)
   humanizeTool(raw) {
     const t = this.data.t;
@@ -232,6 +317,7 @@ Page({
     if (/clock_punch|punch/.test(s)) return t.toolPunch;
     if (/report/.test(s)) return t.toolReport;
     if (/approve_ot|reject_ot/.test(s)) return t.toolOtApprove;
+    if (/submit_leave|leave_request|\bleave\b/.test(s)) return t.toolLeave;
     if (/submit_ot|ot_request|apply_ot/.test(s)) return t.toolOtSubmit;
     if (/query_ot|overtime|\bot\b/.test(s)) return t.toolOt;
     if (/anomal|detect/.test(s)) return t.toolAnomaly;
@@ -395,6 +481,100 @@ Page({
       (empCode ? ", employee_code=" + empCode : ""));
   },
   cancelOtReq(e) {
+    const i = e.currentTarget.dataset.i;
+    if (this.data.messages[i].status !== "pending") return;
+    this.setData({ ["messages[" + i + "].status"]: "cancelled" });
+  },
+
+  /* ---- leave_request:请假申请表单 + HITL 提交 ---- */
+  prepLeaveForm(m) {
+    const zh = this.data.locale === "zh";
+    const now = new Date();
+    const p2 = (n) => (n < 10 ? "0" + n : "" + n);
+    const today = now.getFullYear() + "-" + p2(now.getMonth() + 1) + "-" + p2(now.getDate());
+    // 类型表:CCG 租户真实假种(全部要求 half_start/half_end,全天传 FULL);
+    // agent 可经 a2ui 下发更新后的假种表覆盖
+    if (!m.leaveTypes || !m.leaveTypes.length) {
+      m.leaveTypes = [
+        { code: "CCG_AL_EARN_CAL", label: zh ? "年假 EARN CAL" : "Annual Leave EARN CAL", halfDay: true },
+        { code: "CCG_AL_EARN_SAL", label: zh ? "年假 EARN SAL" : "Annual Leave EARN SAL", halfDay: true },
+        { code: "CCG_SL_FP", label: zh ? "全薪病假" : "Full Paid Sick Leave", halfDay: true },
+        { code: "CCG_BL", label: zh ? "生日假" : "Birthday Leave", halfDay: true },
+      ];
+    }
+    m.typeLabels = m.leaveTypes.map((x) => x.label);
+    let idx = 0;
+    if (m.leave_code || m.leaveCode) {
+      const want = m.leave_code || m.leaveCode;
+      for (let k = 0; k < m.leaveTypes.length; k++) if (m.leaveTypes[k].code === want) { idx = k; break; }
+    }
+    m.typeIndex = idx;
+    // 日期:agent 预填可能是幻觉,超窗口回退设备今天(同 ot_request)
+    const valid = (d) => {
+      if (!d) return "";
+      const diff = (new Date(String(d).replace(/-/g, "/")) - now) / 86400000;
+      return isNaN(diff) || diff < -30 || diff > 366 ? "" : String(d);
+    };
+    m.startDate = valid(m.start_date || m.startDate) || today;
+    m.endDate = valid(m.end_date || m.endDate) || m.startDate;
+    const norm = (h) => (h === "AM" || h === "PM" ? h : "");
+    m.halfStart = norm(m.half_start || m.halfStart);
+    m.halfEnd = norm(m.half_end || m.halfEnd);
+    // employee_code:按当前角色配置,EE 缺省演示工号
+    const role = app.globalData.role || CFG.role || "ee";
+    const acct = (CFG.hrms && CFG.hrms.accounts && CFG.hrms.accounts[role]) || {};
+    m.empCode = m.employee_code || acct.employeeCode || (role === "ee" ? "13000827" : "");
+    if (!m.status) m.status = "pending";
+    this.calcLeave(m);
+  },
+  // 联动派生:halfDay 是否显示半天行、单日只留首日半天、天数计算
+  calcLeave(m) {
+    const HALF = ["", "AM", "PM"];
+    if (new Date(m.endDate.replace(/-/g, "/")) < new Date(m.startDate.replace(/-/g, "/"))) m.endDate = m.startDate;
+    m.halfDay = !!m.leaveTypes[m.typeIndex].halfDay;
+    m.singleDay = m.startDate === m.endDate;
+    if (!m.halfDay) { m.halfStart = ""; m.halfEnd = ""; }
+    if (m.singleDay) m.halfEnd = "";
+    m.halfStartIdx = HALF.indexOf(m.halfStart);
+    m.halfEndIdx = HALF.indexOf(m.halfEnd);
+    let days = (new Date(m.endDate.replace(/-/g, "/")) - new Date(m.startDate.replace(/-/g, "/"))) / 86400000 + 1;
+    if (m.halfStart) days -= 0.5;
+    if (m.halfEnd) days -= 0.5;
+    if (days < 0.5) days = 0.5;
+    m.days = days;
+    m.daysText = days + this.data.t.daysUnit;
+  },
+  lvUpdate(e, mutate) {
+    const i = e.currentTarget.dataset.i;
+    const m = this.data.messages[i];
+    if (m.status !== "pending") return;
+    mutate(m, e.detail.value);
+    this.calcLeave(m);
+    this.setData({ ["messages[" + i + "]"]: m });
+  },
+  lvType(e) { this.lvUpdate(e, (m, v) => { m.typeIndex = +v; }); },
+  lvStart(e) { this.lvUpdate(e, (m, v) => { m.startDate = v; }); },
+  lvEnd(e) { this.lvUpdate(e, (m, v) => { m.endDate = v; }); },
+  lvHalfStart(e) { this.lvUpdate(e, (m, v) => { m.halfStart = ["", "AM", "PM"][+v]; }); },
+  lvHalfEnd(e) { this.lvUpdate(e, (m, v) => { m.halfEnd = ["", "AM", "PM"][+v]; }); },
+  submitLeaveReq(e) {
+    const i = e.currentTarget.dataset.i;
+    const m = this.data.messages[i];
+    if (m.status !== "pending" || this.data.streaming) return;
+    this.setData({ ["messages[" + i + "].status"]: "done" });
+    // 确认词带齐字段,agent 据此 call submit_leave_request;
+    // half_start/half_end 当前全部假种必填(全天=FULL;单日请假 half_end 同 half_start)
+    const t = this.data.t;
+    const code = m.leaveTypes[m.typeIndex].code;
+    let msg = t.lvSubmitMsg + ": " + code + ", " + m.startDate + " – " + m.endDate;
+    if (m.halfDay) {
+      msg += ", half_start=" + (m.halfStart || "FULL");
+      msg += ", half_end=" + ((m.singleDay ? m.halfStart : m.halfEnd) || "FULL");
+    }
+    msg += ", " + m.days + t.daysUnit + (m.empCode ? ", employee_code=" + m.empCode : "");
+    this.send(msg);
+  },
+  cancelLeaveReq(e) {
     const i = e.currentTarget.dataset.i;
     if (this.data.messages[i].status !== "pending") return;
     this.setData({ ["messages[" + i + "].status"]: "cancelled" });

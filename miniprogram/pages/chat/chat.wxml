@@ -213,6 +213,54 @@
             </view>
           </view>
 
+          <!-- leave_balance:假期余额卡(结构化渲染,替代 markdown 文本) -->
+          <view wx:elif="{{item.ctype === 'leave_balance'}}" class="a2ui">
+            <view class="a2-h"><image class="a2-img" src="/assets/icons/chart-blue.svg" />{{t.lvBalTitle}}{{item.year ? ' · ' + item.year : ''}}<text class="a2-badge">A2UI · leave_balance</text></view>
+            <view class="a2-b">
+              <block wx:for="{{item.items}}" wx:for-item="b" wx:key="name">
+                <view class="lvb-row"><text class="lvb-name">{{b.name}}</text><text class="lvb-days">{{b.days}}{{t.daysUnit}}</text></view>
+                <view wx:for="{{b.children}}" wx:for-item="c" wx:key="name" class="lvb-row lvb-sub">
+                  <text class="lvb-name">{{c.name}}</text><text class="lvb-days">{{c.days}}{{t.daysUnit}}</text>
+                </view>
+              </block>
+              <view wx:if="{{item.note}}" class="lvb-note">ⓘ {{item.note}}</view>
+            </view>
+          </view>
+
+          <!-- leave_request:EE 提交请假申请表单(HITL:确认提交后才调工具) -->
+          <view wx:elif="{{item.ctype === 'leave_request'}}" class="a2ui">
+            <view class="a2-h"><image class="a2-img" src="/assets/icons/filetext-blue.svg" />{{t.lvReqTitle}}<text class="a2-badge">A2UI · leave_request</text></view>
+            <view class="a2-b">
+              <!-- 假期类型:类型表可由 agent 经 a2ui 下发(leaveTypes),否则用端上默认 -->
+              <picker mode="selector" range="{{item.typeLabels}}" value="{{item.typeIndex}}" disabled="{{item.status !== 'pending'}}" data-i="{{index}}" bindchange="lvType">
+                <view class="otf-row" hover-class="otf-row-hd"><text class="otf-k">{{t.kLeaveType}}</text><text class="otf-v">{{item.typeLabels[item.typeIndex]}}</text><text wx:if="{{item.status === 'pending'}}" class="otf-arrow">›</text></view>
+              </picker>
+              <picker mode="date" value="{{item.startDate}}" disabled="{{item.status !== 'pending'}}" data-i="{{index}}" bindchange="lvStart">
+                <view class="otf-row" hover-class="otf-row-hd"><text class="otf-k">{{t.kStartDate}}</text><text class="otf-v">{{item.startDate}}</text><text wx:if="{{item.status === 'pending'}}" class="otf-arrow">›</text></view>
+              </picker>
+              <picker mode="date" value="{{item.endDate}}" disabled="{{item.status !== 'pending'}}" data-i="{{index}}" bindchange="lvEnd">
+                <view class="otf-row" hover-class="otf-row-hd"><text class="otf-k">{{t.kEndDate}}</text><text class="otf-v">{{item.endDate}}</text><text wx:if="{{item.status === 'pending'}}" class="otf-arrow">›</text></view>
+              </picker>
+              <!-- 半天选择:仅支持半天的假种(halfDay)显示;单日请假只有首日半天 -->
+              <block wx:if="{{item.halfDay}}">
+                <picker mode="selector" range="{{t.halfOptions}}" value="{{item.halfStartIdx}}" disabled="{{item.status !== 'pending'}}" data-i="{{index}}" bindchange="lvHalfStart">
+                  <view class="otf-row" hover-class="otf-row-hd"><text class="otf-k">{{t.kHalfStart}}</text><text class="otf-v">{{t.halfOptions[item.halfStartIdx]}}</text><text wx:if="{{item.status === 'pending'}}" class="otf-arrow">›</text></view>
+                </picker>
+                <picker wx:if="{{!item.singleDay}}" mode="selector" range="{{t.halfOptions}}" value="{{item.halfEndIdx}}" disabled="{{item.status !== 'pending'}}" data-i="{{index}}" bindchange="lvHalfEnd">
+                  <view class="otf-row" hover-class="otf-row-hd"><text class="otf-k">{{t.kHalfEnd}}</text><text class="otf-v">{{t.halfOptions[item.halfEndIdx]}}</text><text wx:if="{{item.status === 'pending'}}" class="otf-arrow">›</text></view>
+                </picker>
+              </block>
+              <view class="otf-row otf-row-static"><text class="otf-k">{{t.kDuration}}</text><text class="otf-v">{{item.daysText}}</text></view>
+              <view class="otf-row otf-row-static"><text class="otf-k">{{t.kEmpCode}}</text><text class="otf-v">{{item.empCode}}</text></view>
+              <view wx:if="{{item.status === 'pending'}}" class="punch-actions">
+                <button class="punch-cta" hover-class="punch-cta-hd" data-i="{{index}}" bindtap="submitLeaveReq">✓ {{t.lvSubmit}}</button>
+                <button class="punch-ghost" hover-class="punch-ghost-hd" data-i="{{index}}" bindtap="cancelLeaveReq">{{t.punchCancel}}</button>
+              </view>
+              <view wx:elif="{{item.status === 'done'}}" class="adone adone-ok">{{t.lvSubmitted}}</view>
+              <view wx:else class="adone adone-no">{{t.punchCancelled}}</view>
+            </view>
+          </view>
+
           <!-- anomaly_alert -->
           <view wx:elif="{{item.ctype === 'anomaly_alert'}}" class="a2ui">
             <view class="a2-h"><image class="a2-img" src="/assets/icons/alert-red.svg" />{{t.anomalyTitle}}<text class="a2-badge">A2UI · anomaly_alert</text></view>

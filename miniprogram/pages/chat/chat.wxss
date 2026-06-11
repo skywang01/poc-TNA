@@ -31,7 +31,7 @@
 .bubble { max-width: 78%; }
 .me-bubble { background: var(--navy); color: #fff; padding: 20rpx 24rpx; border-radius: 24rpx 24rpx 8rpx 24rpx; font-size: 28rpx; }
 .ai-bubble { max-width: 86%; }
-.txt { background: #fff; border: 1rpx solid var(--line); padding: 22rpx 24rpx; border-radius: 24rpx 24rpx 24rpx 8rpx; font-size: 28rpx; line-height: 1.6; color: var(--ink); box-shadow: 0 1rpx 2rpx rgba(14,20,48,.05); }
+.txt { background: #fff; border: 1rpx solid var(--line); padding: 22rpx 24rpx; border-radius: 24rpx 24rpx 24rpx 8rpx; font-size: 28rpx; line-height: 1.6; color: var(--ink); box-shadow: 0 1rpx 2rpx rgba(14,20,48,.05); white-space: pre-wrap; }
 
 /* 工具调用 = 过程状态行 */
 .toolcall { display: inline-block; font-size: 23rpx; color: var(--slate); background: var(--sunken); padding: 12rpx 20rpx; border-radius: 12rpx; }
@@ -217,6 +217,16 @@
 .punch-ghost { width: 100%; height: 72rpx; line-height: 72rpx; margin-top: 8rpx; background: transparent; color: var(--mute); font-size: 26rpx; font-weight: 500; padding: 0; border-radius: 16rpx; }
 .punch-ghost::after { border: none; }
 .punch-ghost-hd { background: var(--sunken); color: var(--slate); }
+
+/* ---- leave_balance 假期余额卡 ---- */
+.lvb-row { display: flex; align-items: center; justify-content: space-between; padding: 16rpx 0; border-bottom: 1rpx solid var(--divider); }
+.lvb-row:last-of-type { border-bottom: none; }
+.lvb-sub { padding-left: 32rpx; border-bottom: none; padding-top: 4rpx; padding-bottom: 8rpx; }
+.lvb-name { font-size: 26rpx; font-weight: 600; color: var(--ink); }
+.lvb-sub .lvb-name { font-size: 23rpx; font-weight: 400; color: var(--slate); }
+.lvb-days { font-size: 26rpx; font-weight: 700; color: var(--navy); font-variant-numeric: tabular-nums; }
+.lvb-sub .lvb-days { font-size: 23rpx; font-weight: 500; color: var(--slate); }
+.lvb-note { margin-top: 16rpx; padding: 14rpx 18rpx; background: var(--sunken); border-radius: 14rpx; font-size: 22rpx; color: var(--mute); line-height: 1.6; }
 
 /* ---- ot_pending_list 待审批 OT 表格 ---- */
 .otl-scroll { width: 100%; }

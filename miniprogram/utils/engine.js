@@ -33,6 +33,13 @@ const INTROS = {
     otReqIntro: "Sure — I've pre-filled an OT request for you. Check the details and submit:",
     otReqTool: "mcp__attendance_mcp__submit_ot_request",
     otReqDone: "✅ OT request submitted and routed to your manager for approval. I'll let you know once it's processed.",
+    lvBalTool: "mcp__attendance_mcp__get_leave_balance",
+    lvBalText: "Here is your leave balance for attendance year 2026 (carry-over included):",
+    lvBalNote: "Your annual leave is the Earned type — the quota accrues monthly with service time; 18.89 days is what you can apply for right now.",
+    lvGatherAsk: "Sure — to file your leave, please confirm:\n① Leave type: Annual EARN CAL / Annual EARN SAL / Full-paid Sick / Birthday?\n② Start–end dates?\n③ First/last day: full day or AM/PM half? (defaults to full day)",
+    lvReqIntro: "Sure — I've pre-filled a leave request for you. Pick the leave type, check the dates and submit:",
+    lvReqTool: "mcp__attendance_mcp__submit_leave_request",
+    lvReqDone: "✅ Leave request submitted and routed to your manager for approval.",
     otApproveTool: "mcp__attendance_mcp__approve_ot_request",
     otApproveDone: "✅ Approved — synced to HRMS, the employee has been notified.",
     otRejectDone: "Rejected — the employee will be notified.",
@@ -67,6 +74,13 @@ const INTROS = {
     otReqIntro: "好的,已为你预填一张加班申请单,确认信息后提交:",
     otReqTool: "mcp__attendance_mcp__submit_ot_request",
     otReqDone: "✅ 加班申请已提交,已流转给你的经理审批,有进展我会第一时间同步你。",
+    lvBalTool: "mcp__attendance_mcp__get_leave_balance",
+    lvBalText: "这是你 2026 考勤年度的可用假期余额(已含去年结转):",
+    lvBalNote: "你的年假属于 Earned(已挣得)类型,额度随服务时间逐月累计,18.89 天是当前可立即申请的最大天数。",
+    lvGatherAsk: "好的,帮你请假。请确认:\n① 假期类型:年假 EARN CAL / 年假 EARN SAL / 全薪病假 / 生日假?\n② 开始–结束日期?\n③ 首/末日:全天还是上午/下午半天?(不说就按全天)",
+    lvReqIntro: "好的,已为你预填一张请假申请单,选好假期类型、核对日期后提交:",
+    lvReqTool: "mcp__attendance_mcp__submit_leave_request",
+    lvReqDone: "✅ 请假申请已提交,已流转给你的经理审批。",
     otApproveTool: "mcp__attendance_mcp__approve_ot_request",
     otApproveDone: "✅ 已批准,结果已写回 HRMS 并通知员工。",
     otRejectDone: "已驳回,将通知员工。",
@@ -78,9 +92,33 @@ const INTROS = {
   },
 };
 
+// 请假 GATHER 状态:上一轮刚问完缺失字段,下一条带日期的回复直接出表单
+let leaveGatherAsked = false;
+const hasDateInfo = (q) => /\d{4}-\d{1,2}-\d{1,2}|\d{1,2}\s*[\/月]\s*\d{1,2}|今天|明天|后天|大后天|下周|这周|周[一二三四五六日]|tomorrow|today|next\s?week|mon|tue|wed|thu|fri/i.test(q);
+
 function scriptFor(q, locale) {
   const D = getData(locale);
   const I = INTROS[locale] || INTROS.en;
+  // 语音/文字直接确认(没点卡片按钮):带 pending_card 快照时等同卡片确认
+  const verbalOk = /^(确认|提交|可以|好的|好|嗯|行|打吧|ok|okay|yes|sure|submit|confirm|go ahead)/i.test(q);
+  if (verbalOk && /\[pending_card: ot_request/.test(q)) {
+    return [
+      { ctype: "toolcall", label: I.otReqTool },
+      { ctype: "text", text: I.otReqDone },
+    ];
+  }
+  if (verbalOk && /\[pending_card: leave_request/.test(q)) {
+    return [
+      { ctype: "toolcall", label: I.lvReqTool },
+      { ctype: "text", text: I.lvReqDone },
+    ];
+  }
+  if (verbalOk && /\[pending_card: clock_punch/.test(q)) {
+    return [
+      { ctype: "toolcall", label: I.punchTool },
+      { ctype: "text", text: I.punchDone },
+    ];
+  }
   // clock_punch 第二步:用户点了「确认打卡」(可能带坐标)→ 这时才调工具
   if (/^(确认打卡|confirm punch)/i.test(q)) {
     return [
@@ -95,7 +133,7 @@ function scriptFor(q, locale) {
   }
   // clock_punch 第一步:打卡意图 → 只出确认卡,不调工具(HITL)。
   // 排除"看异常打卡/打卡记录"等查询类话术,避免劫持其它剧本。
-  if (/打.{0,4}卡|punch|clock\s?(in|out)/i.test(q) &&
+  if (/打.{0,4}卡|punch|\bclock\b/i.test(q) &&
       !/异常|代打|查|看|记录|明细|日报|报表|统计|anomal|buddy|report|history/i.test(q)) {
     const punchType = /下班|off|out/i.test(q) ? "out" : "in";
     return [
@@ -142,6 +180,56 @@ function scriptFor(q, locale) {
     return [
       { ctype: "text", text: I.otViewIntro },
       { ctype: "ot_approval", pending: hit },
+    ];
+  }
+  // leave_request 第二步:用户点了「提交」→ 这时才调工具
+  if (/^(提交\s*Leave\s*申请|提交请假申请|submit leave request)/i.test(q)) {
+    return [
+      { ctype: "toolcall", label: I.lvReqTool },
+      { ctype: "text", text: I.lvReqDone },
+    ];
+  }
+  // 假期余额:出 leave_balance 结构化卡(不再用 markdown 文本)
+  if (/(假|leave).{0,10}(余额|还剩|剩余|balance)|(余额|balance).{0,10}(假|leave)|(还剩|剩余|剩).{0,8}(假|leave)|how (much|many).{0,12}leave/i.test(q)) {
+    const zhq = locale === "zh";
+    return [
+      { ctype: "toolcall", label: I.lvBalTool },
+      { ctype: "text", text: I.lvBalText },
+      { ctype: "leave_balance", year: "2026", note: I.lvBalNote, items: [
+        { name: zhq ? "年假 (Annual Leave)" : "Annual Leave", days: 18.89, children: [
+          { name: zhq ? "年假 EARN CAL" : "Annual EARN CAL", days: 6.93 },
+          { name: zhq ? "年假 EARN SAL" : "Annual EARN SAL", days: 11.96 },
+        ] },
+        { name: zhq ? "全薪病假 (Full Paid Sick Leave)" : "Full Paid Sick Leave", days: 10 },
+        { name: zhq ? "考试假 (Exam Leave)" : "Exam Leave", days: 10 },
+        { name: zhq ? "婚假 (Marriage Leave)" : "Marriage Leave", days: 3 },
+        { name: zhq ? "生日假 (Birthday Leave)" : "Birthday Leave", days: 1 },
+      ] },
+    ];
+  }
+  // 请假 GATHER 第二轮:上一轮问了缺失字段,这条回复带日期/类型/半天信息 → 出表单
+  if (leaveGatherAsked) {
+    leaveGatherAsked = false;
+    if (hasDateInfo(q) || /年假|病假|生日|事假|半天|全天|上午|下午|annual|sick|birthday|am|pm|full/i.test(q)) {
+      return [
+        { ctype: "text", text: I.lvReqIntro },
+        { ctype: "leave_request", status: "pending" },
+      ];
+    }
+    // 答非所问则放下 GATHER,按正常意图继续往下匹配
+  }
+  // leave_request 第一步:请假意图(排除审批/查余额类话术)。
+  // GATHER 优先:缺日期信息时先引导确认字段,不出空表单(同场景 8 的 OT 流程)
+  if (/请假|休假|请.{0,3}(年假|病假|事假|产假)|(申请|想请|要请).{0,4}(年假|病假|事假|产假|假)|apply.{0,12}leave|request.{0,8}leave|leave request|take.{0,8}leave/i.test(q) &&
+      !/审批|批准|驳回|余额|查|approve|reject|pending|balance/i.test(q)) {
+    if (!hasDateInfo(q)) {
+      leaveGatherAsked = true;
+      return [{ ctype: "text", text: I.lvGatherAsk }];
+    }
+    return [
+      { ctype: "text", text: I.lvReqIntro },
+      // leave_code/start_date/end_date/half_* 由 chat.js 预填默认值
+      { ctype: "leave_request", status: "pending" },
     ];
   }
   // ot_request 第一步:申请加班意图 → 出可编辑表单卡,不调工具(HITL)。
@@ -292,7 +380,7 @@ function invokeReal(query, handlers) {
         if (r.session_id) sessionIds[role] = r.session_id;
         const c = r.content || {};
         if (c.type === "text") text += c.text;
-        else if (c.type === "tool_call") handlers.onMessage({ role: "ai", ctype: "toolcall", label: c.tool });
+        else if (c.type === "tool_call") handlers.onMessage({ role: "ai", ctype: "toolcall", label: c.tool, input: c.input || null });
         else if (c.type === "agent_output") handlers.onMessage(Object.assign({ role: "ai", ctype: c.output_type }, c.data || {}));
       });
       parseA2ui(text).forEach((msg) => handlers.onMessage(msg));
