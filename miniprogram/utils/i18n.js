@@ -15,8 +15,25 @@ const STRINGS = {
   en: {
     tabDashboard: "AI Board",
     tabChat: "AI Assistant",
-    navDashboard: "BIPO Attendance AI",
+    navDashboard: "BIPO Light AI",
     navChat: "AI Assistant",
+
+    // AI Board groups
+    groupTodos: "To-dos · by AI",
+    groupReports: "Reports",
+    groupDetect: "AI Detection",
+    askLink: "Ask AI ›",
+
+    // role guide / switch
+    roleGuideTitle: "Enter as",
+    roleGuideSub: "Pick a role — we'll sign you in to HRMS in the background.",
+    roleEE: "Employee",
+    roleEEDesc: "View my attendance, OT & requests",
+    roleMgr: "Manager",
+    roleMgrDesc: "Approve OT, review team anomalies",
+    loggingIn: "Signing in…",
+    loginFail: "Sign-in failed, tap to retry",
+    roleSwitched: "Switched · ",
 
     // dashboard
     summaryTag: "AI SUMMARY · BY OPUS",
@@ -42,6 +59,7 @@ const STRINGS = {
     greeting: "Hi, I'm Attendance AI. Ask me anything about attendance, overtime, anomalies or compliance — I can also generate dashboards for you.",
     inputPlaceholder: "Ask anything about attendance…",
     suggestions: [
+      "Attendance daily report",
       "Who worked the most OT in R&D?",
       "Help me approve pending OT",
       "Show me clock-in anomalies",
@@ -69,6 +87,37 @@ const STRINGS = {
     aiGen: " (AI-generated)",
     pinHome: "Pin to home",
     pinned: "✓ Pinned",
+    // clock punch
+    punchInTitle: "Clock-in · Confirm",
+    punchOutTitle: "Clock-out · Confirm",
+    punchTypeIn: "CLOCK-IN",
+    punchTypeOut: "CLOCK-OUT",
+    punchOnTime: "On time",
+    punchLate: "Late",
+    punchEarly: "Early",
+    punchLocating: "Locating…",
+    punchLocFail: "No location · tap to retry",
+    punchConfirmIn: "Confirm clock-in",
+    punchConfirmOut: "Confirm clock-out",
+    punchCancel: "Not now",
+    punchDone: "Punched · ",
+    punchCancelled: "Cancelled",
+    punchConfirmMsg: "Confirm punch",
+
+    // clear session
+    clearChat: "Clear",
+    clearTitle: "Clear conversation?",
+    clearBody: "Chat history and session memory will be cleared.",
+    tCleared: "Cleared",
+
+    // tool-call humanizing(过程状态,用户可读)
+    toolPayslip: "Fetching your payslip…",
+    toolPunch: "Punching for you…",
+    toolReport: "Generating your attendance report…",
+    toolOt: "Looking up overtime records…",
+    toolAnomaly: "Scanning clock-in anomalies…",
+    toolGeneric: "Working on it…",
+
     // toasts
     tApproved: "Approved ✓",
     tRejected: "Rejected",
@@ -84,8 +133,23 @@ const STRINGS = {
   zh: {
     tabDashboard: "AI 看板",
     tabChat: "AI 助手",
-    navDashboard: "BIPO 智能考勤",
+    navDashboard: "BIPO Light AI",
     navChat: "AI 助手",
+
+    groupTodos: "待办 · AI 生成",
+    groupReports: "数据报表",
+    groupDetect: "AI 检测",
+    askLink: "问 AI ›",
+
+    roleGuideTitle: "选择进入身份",
+    roleGuideSub: "选择一个角色,我们会在后台帮你登录 HRMS。",
+    roleEE: "员工",
+    roleEEDesc: "查看我的考勤、加班与申请",
+    roleMgr: "经理",
+    roleMgrDesc: "审批加班、查看团队异常",
+    loggingIn: "登录中…",
+    loginFail: "登录失败,点击重试",
+    roleSwitched: "已切换 · ",
 
     summaryTag: "AI 智能摘要 · Opus 生成",
     viewRisks: "查看全部风险",
@@ -109,6 +173,7 @@ const STRINGS = {
     greeting: "你好,我是 Attendance AI。问我考勤、加班、异常或合规的任何问题,我也能帮你生成看板。",
     inputPlaceholder: "问问考勤的任何问题…",
     suggestions: [
+      "看考勤日报",
       "研发部谁 OT 最多?",
       "帮我审批待处理的 OT",
       "给我看异常打卡",
@@ -136,6 +201,34 @@ const STRINGS = {
     aiGen: "(AI 生成)",
     pinHome: "钉到首页看板",
     pinned: "✓ 已钉到首页",
+    punchInTitle: "上班打卡 · 确认",
+    punchOutTitle: "下班打卡 · 确认",
+    punchTypeIn: "上班打卡",
+    punchTypeOut: "下班打卡",
+    punchOnTime: "准点",
+    punchLate: "迟到",
+    punchEarly: "早退",
+    punchLocating: "定位中…",
+    punchLocFail: "未获取定位 · 点击重试",
+    punchConfirmIn: "确认打上班卡",
+    punchConfirmOut: "确认打下班卡",
+    punchCancel: "稍后再说",
+    punchDone: "已打卡 · ",
+    punchCancelled: "已取消",
+    punchConfirmMsg: "确认打卡",
+
+    clearChat: "清空",
+    clearTitle: "清空对话?",
+    clearBody: "将清除当前聊天记录与会话记忆。",
+    tCleared: "已清空",
+
+    toolPayslip: "正在获取你的 Payslip…",
+    toolPunch: "正在为你打卡…",
+    toolReport: "正在生成考勤报表…",
+    toolOt: "正在查询加班明细…",
+    toolAnomaly: "正在扫描打卡异常…",
+    toolGeneric: "正在处理…",
+
     tApproved: "已批准 ✓",
     tRejected: "已驳回",
     tBatch: "已批量批准 3 笔 ✓",

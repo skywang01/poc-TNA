@@ -1,25 +1,116 @@
 <view class="page">
 
-  <!-- language toggle -->
-  <view class="langbar">
-    <view class="seg {{locale==='zh'?'on':''}}" data-l="zh" bindtap="switchLang">中</view>
-    <view class="seg {{locale==='en'?'on':''}}" data-l="en" bindtap="switchLang">EN</view>
+  <!-- top bar: role chip (left) + language toggle (right) -->
+  <view class="topbar">
+    <view wx:if="{{roleChosen}}" class="rolechip" bindtap="switchRole">
+      <text class="role-dot {{role==='manager'?'mgr':'ee'}}"></text>
+      <text class="role-name">{{roleLabel}}</text>
+      <text class="role-swap">⇄</text>
+    </view>
+    <view wx:else></view>
+    <view class="langbar">
+      <view class="seg {{locale==='zh'?'on':''}}" data-l="zh" bindtap="switchLang">中</view>
+      <view class="seg {{locale==='en'?'on':''}}" data-l="en" bindtap="switchLang">EN</view>
+    </view>
   </view>
 
-  <!-- ① AI summary -->
+  <!-- ① AI Daily Brief(按角色生成) -->
   <view class="summary">
     <view class="spark"><image class="spark-img" src="/assets/icons/sparkles-white.svg" /></view>
     <view class="stxt">
       <view class="tag">{{t.summaryTag}}</view>
-      <view class="sline">{{aiSummary.summaryLine}}</view>
+      <view class="sline">{{board.brief}}</view>
       <view class="sactions">
-        <button class="btn btn-primary" size="mini" data-q="{{t.qViewRisks}}" bindtap="askAI">{{t.viewRisks}}</button>
-        <button class="btn btn-ghost" size="mini" data-q="{{t.qDeepDive}}" bindtap="askAI">{{t.deepDive}}</button>
+        <button wx:for="{{board.briefBtns}}" wx:key="label" class="btn {{index === 0 ? 'btn-primary' : 'btn-ghost'}}"
+                size="mini" data-q="{{item.q}}" bindtap="askAI">{{item.label}}</button>
       </view>
     </view>
   </view>
 
-  <!-- pinned dashboards from chat -->
+  <!-- ② 待办 To-dos(AI 生成;每条 = 结论 + 一个动作,动作 deep-link 到 Assistant) -->
+  <view class="card">
+    <view class="card-title"><view class="ic ic-chart"><image class="cic" src="/assets/icons/filetext-blue.svg" /></view>{{t.groupTodos}}<text class="count">{{board.todos.length}} {{t.items}}</text></view>
+    <view wx:for="{{board.todos}}" wx:key="id" class="todo">
+      <view class="todo-c">
+        <view class="todo-t">{{item.title}}</view>
+        <view class="todo-d">{{item.desc}}</view>
+      </view>
+      <button class="todo-btn" size="mini" hover-class="todo-btn-hd" data-q="{{item.q}}" bindtap="askAI">{{item.action}}</button>
+    </view>
+  </view>
+
+  <!-- ③ 数据报表(仅 Manager;EE 不看图表) -->
+  <block wx:if="{{role === 'manager'}}">
+    <view class="ghead">{{t.groupReports}}<text class="ghead-ask" data-q="{{t.qDeepDive}}" bindtap="askAI">{{t.askLink}}</text></view>
+    <view class="kpis">
+      <view wx:for="{{kpis}}" wx:key="label" class="kpi">
+        <view class="kl">{{item.label}}</view>
+        <view class="kv">{{item.value}}</view>
+        <view class="kd {{item.up ? 'up' : 'down'}}">{{item.delta}}</view>
+      </view>
+    </view>
+    <view class="card">
+      <view class="card-title"><view class="ic ic-chart"><image class="cic" src="/assets/icons/chart-blue.svg" /></view>{{t.otByDept}}</view>
+      <view class="bars">
+        <view wx:for="{{deptOt}}" wx:key="dept" class="bar-col">
+          <view class="bar" style="height: {{item.pct * 2.2}}rpx"></view>
+          <view class="bar-label">{{item.dept}}</view>
+        </view>
+      </view>
+    </view>
+    <view class="card">
+      <view class="card-title"><view class="ic ic-chart"><image class="cic" src="/assets/icons/activity-blue.svg" /></view>{{t.trendTitle}}</view>
+      <view class="spark-bars">
+        <view wx:for="{{trend}}" wx:key="*this" class="sb" style="height: {{item / trendMax * 120}}rpx"></view>
+      </view>
+    </view>
+  </block>
+
+  <!-- ④ AI 检测(EE=与我相关;Manager=团队异常+合规) -->
+  <view class="ghead">{{t.groupDetect}}<text class="ghead-ask" data-q="{{t.qViewRisks}}" bindtap="askAI">{{t.askLink}}</text></view>
+
+  <!-- EE:个人提醒 -->
+  <view wx:if="{{role !== 'manager'}}" class="card">
+    <view wx:for="{{board.alerts}}" wx:key="id" class="alert {{item.severity === 'high' ? 'alert-red' : 'alert-amber'}}"
+          data-q="{{t.deepPrefix}}{{item.title}}" bindtap="askAI">
+      <view class="dot {{item.severity === 'high' ? 'dot-red' : 'dot-amber'}}"></view>
+      <view class="c">
+        <view class="t">{{item.title}}</view>
+        <view class="why">{{item.why}}<text class="ai">{{item.ai}}</text></view>
+      </view>
+      <view class="sev {{item.severity === 'high' ? 'sev-high' : 'sev-mid'}}">{{item.severity === 'high' ? t.high : t.mid}}</view>
+    </view>
+  </view>
+
+  <!-- Manager:团队异常 + 合规 -->
+  <block wx:if="{{role === 'manager'}}">
+    <view class="card">
+      <view class="card-title"><view class="ic ic-warn"><image class="cic" src="/assets/icons/alert-red.svg" /></view>{{t.anomalyTitle}}<text class="count">{{anomalies.length}} {{t.items}}</text></view>
+      <view wx:for="{{anomalies}}" wx:key="id" class="alert {{item.severity === 'high' ? 'alert-red' : 'alert-amber'}}"
+            data-q="{{t.deepPrefix}}{{item.title}}" bindtap="askAI">
+        <view class="dot {{item.severity === 'high' ? 'dot-red' : 'dot-amber'}}"></view>
+        <view class="c">
+          <view class="t">{{item.title}}</view>
+          <view class="why">{{item.why}}<text class="ai">{{item.ai}}</text></view>
+        </view>
+        <view class="sev {{item.severity === 'high' ? 'sev-high' : 'sev-mid'}}">{{item.severity === 'high' ? t.high : t.mid}}</view>
+      </view>
+    </view>
+    <view class="card">
+      <view class="card-title"><view class="ic ic-law"><image class="cic" src="/assets/icons/scale-amber.svg" /></view>{{t.complianceTitle}}<text class="count">{{compliance.length}} {{t.items}}</text></view>
+      <view wx:for="{{compliance}}" wx:key="id" class="alert {{item.severity === 'high' ? 'alert-red' : 'alert-amber'}}"
+            data-q="{{t.deepPrefix}}{{item.title}}" bindtap="askAI">
+        <view class="dot {{item.severity === 'high' ? 'dot-red' : 'dot-amber'}}"></view>
+        <view class="c">
+          <view class="t">{{item.title}}</view>
+          <view class="why">{{item.why}}<text class="ai">{{item.ai}}</text></view>
+        </view>
+        <view class="sev {{item.severity === 'high' ? 'sev-high' : 'sev-mid'}}">{{item.severity === 'high' ? t.high : t.mid}}</view>
+      </view>
+    </view>
+  </block>
+
+  <!-- ⑤ 钉住的看板(从 Assistant 沉淀) -->
   <view wx:if="{{pinned.length}}" class="pinned-wrap">
     <view class="pinned-head"><image class="pinned-head-img" src="/assets/icons/pin-blue.svg" />{{t.pinnedHead}}</view>
     <view wx:for="{{pinned}}" wx:key="title" class="card pinned-card">
@@ -37,66 +128,37 @@
     </view>
   </view>
 
-  <!-- KPI grid -->
-  <view class="kpis">
-    <view wx:for="{{kpis}}" wx:key="label" class="kpi">
-      <view class="kl">{{item.label}}</view>
-      <view class="kv">{{item.value}}</view>
-      <view class="kd {{item.up ? 'up' : 'down'}}">{{item.delta}}</view>
-    </view>
-  </view>
-
-  <!-- OT by dept -->
-  <view class="card">
-    <view class="card-title"><view class="ic ic-chart"><image class="cic" src="/assets/icons/chart-blue.svg" /></view>{{t.otByDept}}</view>
-    <view class="bars">
-      <view wx:for="{{deptOt}}" wx:key="dept" class="bar-col">
-        <view class="bar" style="height: {{item.pct * 2.2}}rpx"></view>
-        <view class="bar-label">{{item.dept}}</view>
-      </view>
-    </view>
-  </view>
-
-  <!-- trend sparkline -->
-  <view class="card">
-    <view class="card-title"><view class="ic ic-chart"><image class="cic" src="/assets/icons/activity-blue.svg" /></view>{{t.trendTitle}}</view>
-    <view class="spark-bars">
-      <view wx:for="{{trend}}" wx:key="*this" class="sb" style="height: {{item / trendMax * 120}}rpx"></view>
-    </view>
-  </view>
-
-  <!-- ② AI anomaly detection -->
-  <view class="card">
-    <view class="card-title"><view class="ic ic-warn"><image class="cic" src="/assets/icons/alert-red.svg" /></view>{{t.anomalyTitle}}<text class="count">{{anomalies.length}} {{t.items}}</text></view>
-    <view wx:for="{{anomalies}}" wx:key="id" class="alert {{item.severity === 'high' ? 'alert-red' : 'alert-amber'}}"
-          data-q="{{t.deepPrefix}}{{item.title}}" bindtap="askAI">
-      <view class="dot {{item.severity === 'high' ? 'dot-red' : 'dot-amber'}}"></view>
-      <view class="c">
-        <view class="t">{{item.title}}</view>
-        <view class="why">{{item.why}}<text class="ai">{{item.ai}}</text></view>
-      </view>
-      <view class="sev {{item.severity === 'high' ? 'sev-high' : 'sev-mid'}}">{{item.severity === 'high' ? t.high : t.mid}}</view>
-    </view>
-  </view>
-
-  <!-- ③ compliance risk -->
-  <view class="card">
-    <view class="card-title"><view class="ic ic-law"><image class="cic" src="/assets/icons/scale-amber.svg" /></view>{{t.complianceTitle}}<text class="count">{{compliance.length}} {{t.items}}</text></view>
-    <view wx:for="{{compliance}}" wx:key="id" class="alert {{item.severity === 'high' ? 'alert-red' : 'alert-amber'}}"
-          data-q="{{t.deepPrefix}}{{item.title}}" bindtap="askAI">
-      <view class="dot {{item.severity === 'high' ? 'dot-red' : 'dot-amber'}}"></view>
-      <view class="c">
-        <view class="t">{{item.title}}</view>
-        <view class="why">{{item.why}}<text class="ai">{{item.ai}}</text></view>
-      </view>
-      <view class="sev {{item.severity === 'high' ? 'sev-high' : 'sev-mid'}}">{{item.severity === 'high' ? t.high : t.mid}}</view>
-    </view>
-  </view>
-
 </view>
 
 <!-- floating Ask AI -->
 <view class="fab" data-q="" bindtap="askAI">
   <image class="fab-img" src="/assets/icons/sparkles-white.svg" />
   <text class="fab-label">{{t.fabLabel}}</text>
+</view>
+
+<!-- 首屏角色引导(未选角色前拦截) -->
+<view wx:if="{{!roleChosen}}" class="role-mask">
+  <view class="role-card">
+    <view class="role-spark"><image class="role-spark-img" src="/assets/icons/sparkles-white.svg" /></view>
+    <view class="role-title">{{t.roleGuideTitle}}</view>
+    <view class="role-sub">{{t.roleGuideSub}}</view>
+    <view class="role-opts">
+      <view class="role-opt" data-r="ee" bindtap="pickRole">
+        <text class="role-emoji">🧑‍💼</text>
+        <view class="role-meta">
+          <view class="role-opt-name">{{t.roleEE}}</view>
+          <view class="role-opt-desc">{{t.roleEEDesc}}</view>
+        </view>
+        <text class="role-arrow">→</text>
+      </view>
+      <view class="role-opt" data-r="manager" bindtap="pickRole">
+        <text class="role-emoji">👔</text>
+        <view class="role-meta">
+          <view class="role-opt-name">{{t.roleMgr}}</view>
+          <view class="role-opt-desc">{{t.roleMgrDesc}}</view>
+        </view>
+        <text class="role-arrow">→</text>
+      </view>
+    </view>
+  </view>
 </view>

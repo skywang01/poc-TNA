@@ -1,4 +1,6 @@
 {
-  "usingComponents": {},
+  "usingComponents": {
+    "chart-view": "/components/charts/chart-view"
+  },
   "navigationBarTitleText": "AI 助手"
 }

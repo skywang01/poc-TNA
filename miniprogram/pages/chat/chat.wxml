@@ -9,12 +9,11 @@
       </view>
     </view>
     <view class="mh-right">
-      <view wx:if="{{!userAvatar}}" class="ava-tip">{{t.avaTip}}</view>
+      <view class="mh-clear" hover-class="mh-clear-hd" bindtap="clearSession">{{t.clearChat}}</view>
       <button class="me-ava-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
         <image wx:if="{{userAvatar}}" class="me-ava-img" src="{{userAvatar}}" mode="aspectFill" />
         <view wx:else class="me-ava-ph"></view>
       </button>
-      <view wx:if="{{!userAvatar}}" class="ava-dot"></view>
     </view>
   </view>
 
@@ -33,12 +32,23 @@
 
           <view wx:if="{{item.ctype === 'text'}}" class="txt">{{item.text}}</view>
 
-          <view wx:elif="{{item.ctype === 'toolcall'}}" class="toolcall"><image class="tc-img" src="/assets/icons/wrench-blue.svg" />{{t.calling}}{{item.label}}</view>
+          <view wx:elif="{{item.ctype === 'toolcall'}}" class="toolcall">
+            <view class="tc-main"><image class="tc-img" src="/assets/icons/wrench-blue.svg" />{{item.label}}</view>
+            <view wx:if="{{item.raw}}" class="tc-raw">{{item.raw}}</view>
+          </view>
 
           <view wx:elif="{{item.ctype === 'progress'}}" class="progress">
             <view class="prog-head"><image class="prog-img" src="/assets/icons/search-blue.svg" />{{item.label}}</view>
             <view class="pbar"><view class="pbar-i"></view></view>
             <view class="pstep">{{t.scanned}} {{item.scanned}} / {{item.total}} · {{t.done}}</view>
+          </view>
+
+          <!-- attendance_report:声明式 views,按 chart 类型查注册表渲染 -->
+          <view wx:elif="{{item.ctype === 'attendance_report'}}" class="a2ui">
+            <view class="a2-h"><image class="a2-img" src="/assets/icons/chart-blue.svg" />{{item.title}}<text class="a2-badge">A2UI · attendance_report</text></view>
+            <view class="a2-b">
+              <chart-view wx:for="{{item.views}}" wx:for-item="v" wx:key="title" view="{{v}}" />
+            </view>
           </view>
 
           <!-- ot_breakdown -->
@@ -58,6 +68,38 @@
                 </view>
               </block>
               <view class="drill-hint">{{t.drillHint}}</view>
+            </view>
+          </view>
+
+          <!-- clock_punch:打卡确认卡(时间/地点/人),确认后才调工具 -->
+          <view wx:elif="{{item.ctype === 'clock_punch'}}" class="a2ui">
+            <view class="a2-h"><image class="a2-img" src="/assets/icons/filetext-blue.svg" />{{item.punchType === 'in' ? t.punchInTitle : t.punchOutTitle}}<text class="a2-badge">A2UI · clock_punch</text></view>
+            <view class="a2-b">
+              <!-- hero:类型 + 准点徽章 + 大时间(含秒) + 长日期·班次 -->
+              <view class="punch-hero">
+                <view class="ph-top">
+                  <view class="ph-type"><text class="ph-dot"></text>{{item.punchType === 'in' ? t.punchTypeIn : t.punchTypeOut}}</view>
+                  <view wx:if="{{item.badge}}" class="ph-badge {{item.badgeOk ? '' : 'ph-badge-warn'}}">{{item.badgeOk ? '✓ ' : ''}}{{item.badge}}</view>
+                </view>
+                <view class="ph-time">{{item.timeHM}}<text class="ph-sec">:{{item.timeSS}}</text></view>
+                <view class="ph-date">{{item.dateLong}}{{item.shiftLabel ? ' · ' + item.shiftLabel : ''}}</view>
+              </view>
+              <!-- 地点卡:办公室名 + 围栏状态副行 -->
+              <view class="ploc" data-i="{{index}}" bindtap="punchLoc" hover-class="ploc-hd">
+                <view class="ploc-ic"><image class="ploc-img" src="/assets/icons/pin-blue.svg" /></view>
+                <view class="ploc-c">
+                  <view class="ploc-name">{{item.locText}}</view>
+                  <view wx:if="{{item.locSub}}" class="ploc-sub {{item.locState}}">{{item.locSub}}</view>
+                </view>
+                <text wx:if="{{item.status === 'pending'}}" class="prow-arrow">›</text>
+              </view>
+              <!-- 动作区:唯一主 CTA + 文字按钮 -->
+              <view wx:if="{{item.status === 'pending'}}" class="punch-actions">
+                <button class="punch-cta" hover-class="punch-cta-hd" data-i="{{index}}" bindtap="confirmPunch">✓ {{item.punchType === 'in' ? t.punchConfirmIn : t.punchConfirmOut}}</button>
+                <button class="punch-ghost" hover-class="punch-ghost-hd" data-i="{{index}}" bindtap="cancelPunch">{{t.punchCancel}}</button>
+              </view>
+              <view wx:elif="{{item.status === 'done'}}" class="adone adone-ok">{{t.punchDone}}{{item.time}}</view>
+              <view wx:else class="adone adone-no">{{t.punchCancelled}}</view>
             </view>
           </view>
 

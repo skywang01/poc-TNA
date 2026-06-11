@@ -6,7 +6,7 @@
   "window": {
     "navigationBarBackgroundColor": "#20307D",
     "navigationBarTextStyle": "white",
-    "navigationBarTitleText": "BIPO Attendance AI",
+    "navigationBarTitleText": "BIPO Light AI",
     "backgroundColor": "#F5F7FB"
   },
   "tabBar": {
@@ -18,6 +18,10 @@
       { "pagePath": "pages/dashboard/dashboard", "text": "AI Board", "iconPath": "assets/tab/board-off.png", "selectedIconPath": "assets/tab/board-on.png" },
       { "pagePath": "pages/chat/chat", "text": "AI Assistant", "iconPath": "assets/tab/assistant-off.png", "selectedIconPath": "assets/tab/assistant-on.png" }
     ]
+  },
+  "requiredPrivateInfos": ["getLocation", "chooseLocation"],
+  "permission": {
+    "scope.userLocation": { "desc": "用于记录打卡地点" }
   },
   "style": "v2",
   "sitemapLocation": "sitemap.json"

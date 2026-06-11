@@ -47,6 +47,8 @@ Page({
   },
 
   onShow() {
+    // 未选角色(未登录 HRMS)则跳回看板的首屏引导,避免无 token 调用
+    if (!app.globalData.role) { wx.switchTab({ url: "/pages/dashboard/dashboard" }); return; }
     if (this.data.locale !== i18n.getLocale()) this.applyLocale(i18n.getLocale());
     const q = app.globalData.pendingQuery;
     if (q) { app.globalData.pendingQuery = ""; this.send(q); }
@@ -134,9 +136,137 @@ Page({
     this.push({ role: "user", ctype: "text", text: q });
     this.setData({ streaming: true });
     engine.invoke(q, {
-      onMessage: (m) => this.push(m),
+      onMessage: (m) => {
+        if (m.ctype === "toolcall") {
+          // 工具调用是过程信息:人话化展示,原始工具名降级为小字
+          m.raw = m.label;
+          m.label = this.humanizeTool(m.raw);
+          this.push(m);
+        } else if (m.ctype === "clock_punch") {
+          // 时间/地点是设备的事实,agent 不可靠:到端即用本机时间覆盖,并发起定位
+          this.prepPunch(m);
+          this.push(m);
+          this.locate(this.data.messages.length - 1);
+        } else {
+          this.push(m);
+        }
+      },
       onDone: () => this.setData({ streaming: false }),
     });
+  },
+
+  // 清空对话:消息流 + agent 多轮会话记忆(session_id)一起重置
+  clearSession() {
+    if (this.data.streaming) return; // 回复中不允许清,避免消息错位
+    const t = this.data.t;
+    wx.showModal({
+      title: t.clearTitle,
+      content: t.clearBody,
+      confirmText: t.clearChat,
+      confirmColor: "#DC2626",
+      success: (r) => {
+        if (!r.confirm) return;
+        engine.resetSession();
+        this.setData({ messages: [], seq: 0, input: "" });
+        this.push({ role: "ai", ctype: "text", text: t.greeting });
+        wx.showToast({ title: t.tCleared, icon: "success" });
+      },
+    });
+  },
+
+  // 工具名 -> 用户可读的状态文案(按业务关键词匹配,新工具不认识就走兜底)
+  humanizeTool(raw) {
+    const t = this.data.t;
+    const s = (raw || "").toLowerCase();
+    if (/payslip|salary/.test(s)) return t.toolPayslip;
+    if (/clock_punch|punch/.test(s)) return t.toolPunch;
+    if (/report/.test(s)) return t.toolReport;
+    if (/query_ot|overtime|\bot\b/.test(s)) return t.toolOt;
+    if (/anomal|detect/.test(s)) return t.toolAnomaly;
+    return t.toolGeneric;
+  },
+
+  /* ---- clock_punch:设备侧注入 + HITL 确认 ---- */
+  prepPunch(m) {
+    const t = this.data.t;
+    const zh = this.data.locale === "zh";
+    const now = new Date();
+    const p2 = (n) => (n < 10 ? "0" + n : "" + n);
+    m.time = p2(now.getHours()) + ":" + p2(now.getMinutes()); // 回执/确认消息用
+    m.timeHM = m.time;
+    m.timeSS = p2(now.getSeconds());
+    // 长日期:zh "2026年6月10日 · 周三";en "Wednesday, 10 June 2026"
+    const MON = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+    const WD = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    m.dateLong = zh
+      ? now.getFullYear() + "年" + (now.getMonth() + 1) + "月" + now.getDate() + "日 · 周" + "日一二三四五六"[now.getDay()]
+      : WD[now.getDay()] + ", " + now.getDate() + " " + MON[now.getMonth()] + " " + now.getFullYear();
+    // 班次/准点徽章:只信上游真数据(agent 从 HRMS 取到才有),没有就不显示
+    if (m.shift && m.shift.start && m.shift.end) {
+      m.shiftLabel = (m.shift.label ? m.shift.label + " " : "") + m.shift.start + "–" + m.shift.end;
+      const toMin = (hm) => { const a = hm.split(":"); return +a[0] * 60 + +a[1]; };
+      const mins = now.getHours() * 60 + now.getMinutes();
+      if (m.punchType === "out") { m.badgeOk = mins >= toMin(m.shift.end); m.badge = m.badgeOk ? t.punchOnTime : t.punchEarly; }
+      else { m.badgeOk = mins <= toMin(m.shift.start); m.badge = m.badgeOk ? t.punchOnTime : t.punchLate; }
+    } else {
+      m.shiftLabel = "";
+      m.badge = "";
+    }
+    if (!m.status) m.status = "pending";
+    // 地点:只显示真值 —— 定位中 → 真实坐标+精度;地图选点后才有地名
+    m.locText = t.punchLocating;
+    m.locSub = "";
+    m.locState = "pending";
+  },
+  locate(i) {
+    const t = this.data.t;
+    wx.getLocation({
+      type: "gcj02", isHighAccuracy: true,
+      success: (r) => {
+        this.setData({
+          ["messages[" + i + "].loc"]: { lat: r.latitude, lng: r.longitude },
+          // 全部真值:坐标 + GPS 精度
+          ["messages[" + i + "].locText"]: r.latitude.toFixed(4) + ", " + r.longitude.toFixed(4),
+          ["messages[" + i + "].locSub"]: "GPS ±" + Math.round(r.accuracy || 0) + "m",
+          ["messages[" + i + "].locState"]: "ok",
+        });
+      },
+      fail: () => this.setData({
+        ["messages[" + i + "].locText"]: t.punchLocFail,
+        ["messages[" + i + "].locSub"]: "",
+        ["messages[" + i + "].locState"]: "fail",
+      }),
+    });
+  },
+  // 点地点行:地图选点 → 显示用户确认过的真实地名;定位失败时重试
+  punchLoc(e) {
+    const i = e.currentTarget.dataset.i;
+    const m = this.data.messages[i];
+    if (m.status !== "pending") return;
+    if (m.locState === "fail") return this.locate(i);
+    wx.chooseLocation({
+      success: (r) => this.setData({
+        ["messages[" + i + "].loc"]: { lat: r.latitude, lng: r.longitude },
+        ["messages[" + i + "].locText"]: r.name || r.address,
+        ["messages[" + i + "].locSub"]: r.address || "",
+        ["messages[" + i + "].locState"]: "ok",
+      }),
+      fail: () => { if (!m.loc) this.locate(i); },
+    });
+  },
+  confirmPunch(e) {
+    const i = e.currentTarget.dataset.i;
+    const m = this.data.messages[i];
+    if (m.status !== "pending" || this.data.streaming) return;
+    this.setData({ ["messages[" + i + "].status"]: "done" });
+    // 确认词带坐标回传,agent 据此 call clock_punch 工具
+    const coord = m.loc ? " (" + m.loc.lat.toFixed(4) + "," + m.loc.lng.toFixed(4) + ")" : "";
+    this.send(this.data.t.punchConfirmMsg + coord);
+  },
+  cancelPunch(e) {
+    const i = e.currentTarget.dataset.i;
+    if (this.data.messages[i].status !== "pending") return;
+    this.setData({ ["messages[" + i + "].status"]: "cancelled" });
   },
 
   toggleDrill(e) {

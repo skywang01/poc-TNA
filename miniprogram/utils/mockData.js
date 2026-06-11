@@ -54,6 +54,108 @@ const DATA = {
       series: [40, 55, 48, 80, 100, 72],
     },
     title: { otBreakdown: "R&D OT Top 5", otApproval: "OT Approval · " },
+    // AI Board:扁平结果流,按角色注入(brief + AI 生成的待办 + EE 个人提醒)
+    board: {
+      ee: {
+        brief: "Clocked in at 08:55 today. 2 late arrivals this month; your OT request (06-05) is pending approval. Your May payslip just arrived — net pay credited.",
+        briefBtns: [
+          { label: "My attendance report", q: "Attendance daily report" },
+        ],
+        todos: [
+          { id: "td-pay", title: "New payslip · May 2026", desc: "AI can break down the composition and changes for you.", action: "View", q: "I just received my May payslip — analyze my salary for me" },
+          { id: "td-punch", title: "Not clocked out yet today", desc: "Your shift ends at 18:00.", action: "Punch", q: "Clock out for me" },
+          { id: "td-leave", title: "3 annual-leave days expire 12-31", desc: "Plan ahead so they don't go to waste.", action: "Plan", q: "Check my annual leave balance and suggest how to use it" },
+        ],
+        alerts: [
+          { id: "ea-1", title: "Overtime streak · this week 12h", why: "Approaching the weekly cap. ", ai: "AI: schedule rest", severity: "mid" },
+        ],
+      },
+      manager: {
+        brief: "Team attendance 39/40 today. 3 approvals waiting (OT ×2, leave ×1) — 1 carries a compliance flag. R&D overtime is still climbing.",
+        briefBtns: [
+          { label: "View risks", q: "Summarize this month's anomalies and compliance risks with recommendations" },
+          { label: "Analyze with AI →", q: "Why did R&D overtime spike, and who worked the most OT?" },
+        ],
+        todos: [
+          { id: "td-appr", title: "3 approvals pending", desc: "OT ×2 (Sales), leave ×1 (Ops) — 1 has a compliance flag.", action: "Process", q: "Help me approve pending OT" },
+          { id: "td-risk", title: "Zhang San nearing hours cap", desc: "58h in the last 7 days.", action: "Review", q: "Deep-dive: Zhang San consecutive working-hours risk" },
+        ],
+      },
+    },
+    // Payslip 分析卡(EE 待办 deep-link 后,Assistant 渲染)
+    payslip: {
+      title: "Payslip · May 2026",
+      views: [
+        { chart: "pie", title: "Gross composition", data: {
+          items: [
+            { name: "Base", value: 24000 },
+            { name: "Performance", value: 6000 },
+            { name: "Allowance", value: 2000 },
+          ],
+        } },
+        { chart: "table", title: "Breakdown", data: {
+          columns: ["Item", "Amount"],
+          rows: [
+            ["Gross", "¥32,000"],
+            ["Social insurance", "-¥2,240"],
+            ["Housing fund", "-¥3,840"],
+            ["Income tax", "-¥1,890"],
+            ["Net pay", "¥24,030"],
+          ],
+        } },
+      ],
+    },
+    // attendance_report:声明式 views,chart 类型对应 chart-view 注册表
+    report: {
+      ee: {
+        title: "My Attendance · June 2026",
+        views: [
+          { chart: "table", title: "Daily clock-ins", data: {
+            columns: ["Date", "In", "Out", "Status"],
+            rows: [
+              ["06-10 Wed", "08:55", "18:32", "Normal"],
+              ["06-09 Tue", "09:12", "19:05", "Late"],
+              ["06-08 Mon", "08:58", "18:20", "Normal"],
+              ["06-05 Fri", "08:51", "21:40", "Normal"],
+              ["06-04 Thu", "—", "—", "Leave"],
+              ["06-03 Wed", "08:57", "18:15", "Normal"],
+              ["06-02 Tue", "09:31", "18:44", "Late"],
+              ["06-01 Mon", "08:49", "18:08", "Normal"],
+            ],
+          } },
+        ],
+      },
+      manager: {
+        title: "Team Attendance Report · June 2026",
+        views: [
+          { chart: "line", title: "Attendance rate trend (%)", data: {
+            x: ["06-01", "06-02", "06-03", "06-04", "06-05", "06-08", "06-09", "06-10"],
+            y: [97.5, 95.0, 96.3, 92.5, 96.3, 98.8, 93.8, 97.5],
+          } },
+          { chart: "pie", title: "Status distribution (person-days)", data: {
+            items: [
+              { name: "Normal", value: 86 },
+              { name: "Late", value: 6 },
+              { name: "Early leave", value: 3 },
+              { name: "Absent", value: 2 },
+              { name: "Leave", value: 3 },
+            ],
+          } },
+          { chart: "bar", title: "Late count by member", data: {
+            names: ["Li Si", "Zhang San", "Wu Er", "Lin Qi", "Zhao Ba"],
+            values: [5, 3, 2, 1, 1],
+          } },
+          { chart: "table", title: "Daily summary", data: {
+            columns: ["Date", "Present", "Late", "Absent"],
+            rows: [
+              ["06-10 Wed", "39/40", "1", "0"],
+              ["06-09 Tue", "37/40", "3", "1"],
+              ["06-08 Mon", "40/40", "0", "0"],
+            ],
+          } },
+        ],
+      },
+    },
   },
 
   zh: {
@@ -109,6 +211,108 @@ const DATA = {
       series: [40, 55, 48, 80, 100, 72],
     },
     title: { otBreakdown: "研发部 OT Top 5", otApproval: "OT 审批 · " },
+    // AI Board:扁平结果流,按角色注入(brief + AI 生成的待办 + EE 个人提醒)
+    board: {
+      ee: {
+        brief: "今天 08:55 已打上班卡。本月 2 次迟到;你 06-05 的加班单仍在审批中。5 月 Payslip 已到账。",
+        briefBtns: [
+          { label: "看我的考勤", q: "看考勤日报" },
+        ],
+        todos: [
+          { id: "td-pay", title: "新的 Payslip · 2026年5月", desc: "AI 可以帮你拆解构成与环比变化。", action: "查看", q: "我收到一份新的 Payslip,帮我分析一下我的薪资情况" },
+          { id: "td-punch", title: "今天还没打下班卡", desc: "你的班次 18:00 结束。", action: "去打卡", q: "帮我打个下班卡" },
+          { id: "td-leave", title: "3 天年假 12-31 清零", desc: "提前规划,别浪费了。", action: "规划", q: "看下我的年假余额,给我请假建议" },
+        ],
+        alerts: [
+          { id: "ea-1", title: "加班提醒 · 本周已 12h", why: "接近每周上限。", ai: "AI:建议安排休息", severity: "mid" },
+        ],
+      },
+      manager: {
+        brief: "团队今日出勤 39/40。3 笔审批待处理(OT×2、请假×1),其中 1 笔有合规标记。研发部 OT 仍在攀升。",
+        briefBtns: [
+          { label: "查看全部风险", q: "汇总本月所有异常和合规风险,并给出处理建议" },
+          { label: "让 AI 深入分析 →", q: "分析研发部 OT 为什么飙升,谁加班最多?" },
+        ],
+        todos: [
+          { id: "td-appr", title: "3 笔审批待处理", desc: "OT×2(销售)、请假×1(运营),1 笔有合规标记。", action: "批量处理", q: "帮我审批待处理的 OT" },
+          { id: "td-risk", title: "张三连续工时逼近上限", desc: "近 7 天累计 58h。", action: "处理", q: "深入分析:张三连续工时超限风险" },
+        ],
+      },
+    },
+    // Payslip 分析卡(EE 待办 deep-link 后,Assistant 渲染)
+    payslip: {
+      title: "Payslip · 2026年5月",
+      views: [
+        { chart: "pie", title: "应发构成", data: {
+          items: [
+            { name: "基本工资", value: 24000 },
+            { name: "绩效", value: 6000 },
+            { name: "津贴", value: 2000 },
+          ],
+        } },
+        { chart: "table", title: "明细", data: {
+          columns: ["项目", "金额"],
+          rows: [
+            ["应发合计", "¥32,000"],
+            ["社保", "-¥2,240"],
+            ["公积金", "-¥3,840"],
+            ["个税", "-¥1,890"],
+            ["实发", "¥24,030"],
+          ],
+        } },
+      ],
+    },
+    // attendance_report:声明式 views,chart 类型对应 chart-view 注册表
+    report: {
+      ee: {
+        title: "我的考勤 · 2026年6月",
+        views: [
+          { chart: "table", title: "每日打卡明细", data: {
+            columns: ["日期", "上班", "下班", "状态"],
+            rows: [
+              ["06-10 周三", "08:55", "18:32", "正常"],
+              ["06-09 周二", "09:12", "19:05", "迟到"],
+              ["06-08 周一", "08:58", "18:20", "正常"],
+              ["06-05 周五", "08:51", "21:40", "正常"],
+              ["06-04 周四", "—", "—", "请假"],
+              ["06-03 周三", "08:57", "18:15", "正常"],
+              ["06-02 周二", "09:31", "18:44", "迟到"],
+              ["06-01 周一", "08:49", "18:08", "正常"],
+            ],
+          } },
+        ],
+      },
+      manager: {
+        title: "团队考勤报表 · 2026年6月",
+        views: [
+          { chart: "line", title: "出勤率趋势(%)", data: {
+            x: ["06-01", "06-02", "06-03", "06-04", "06-05", "06-08", "06-09", "06-10"],
+            y: [97.5, 95.0, 96.3, 92.5, 96.3, 98.8, 93.8, 97.5],
+          } },
+          { chart: "pie", title: "考勤状态分布(人·天)", data: {
+            items: [
+              { name: "正常", value: 86 },
+              { name: "迟到", value: 6 },
+              { name: "早退", value: 3 },
+              { name: "缺勤", value: 2 },
+              { name: "请假", value: 3 },
+            ],
+          } },
+          { chart: "bar", title: "成员迟到次数对比", data: {
+            names: ["李四", "张三", "吴二", "林七", "赵八"],
+            values: [5, 3, 2, 1, 1],
+          } },
+          { chart: "table", title: "每日汇总", data: {
+            columns: ["日期", "出勤", "迟到", "缺勤"],
+            rows: [
+              ["06-10 周三", "39/40", "1", "0"],
+              ["06-09 周二", "37/40", "3", "1"],
+              ["06-08 周一", "40/40", "0", "0"],
+            ],
+          } },
+        ],
+      },
+    },
   },
 };
 
