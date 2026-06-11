@@ -40,9 +40,9 @@ const DATA = {
       { name: "Zhao Ba", hours: 20, pct: 21, daily: [{ date: "May 21 (Wed)", hours: 2.5 }] },
     ],
     pendingOt: [
-      { id: "ot-zs", name: "Zhang San", dept: "R&D", date: "2026-05-25 (Sat)", hours: 9.5, reason: "Release crunch", flag: "This employee already logged 58h in the last 7 days; approving nears the labor-law cap" },
-      { id: "ot-sales-1", name: "Zhou Yi", dept: "Sales", date: "2026-05-28 (Wed)", hours: 3.0, reason: "Client demo prep" },
-      { id: "ot-sales-2", name: "Wu Er", dept: "Sales", date: "2026-05-29 (Thu)", hours: 2.5, reason: "Quarter-end sprint" },
+      { id: "ot-zs", name: "Zhang San", dept: "R&D", date: "2026-05-25 (Sat)", start: "19:00", end: "04:30", hours: 9.5, otType: "pay", reason: "Release crunch", flag: "This employee already logged 58h in the last 7 days; approving nears the labor-law cap" },
+      { id: "ot-sales-1", name: "Zhou Yi", dept: "Sales", date: "2026-05-28 (Wed)", start: "18:30", end: "21:30", hours: 3.0, otType: "pay", reason: "Client demo prep" },
+      { id: "ot-sales-2", name: "Wu Er", dept: "Sales", date: "2026-05-29 (Thu)", start: "19:00", end: "21:30", hours: 2.5, otType: "leave", reason: "Quarter-end sprint" },
     ],
     generatedDashboard: {
       title: "R&D OT Dashboard",
@@ -197,9 +197,9 @@ const DATA = {
       { name: "赵八", hours: 20, pct: 21, daily: [{ date: "05-21 (三)", hours: 2.5 }] },
     ],
     pendingOt: [
-      { id: "ot-zs", name: "张三", dept: "研发", date: "2026-05-25 (周六)", hours: 9.5, reason: "版本上线赶工", flag: "该员工近 7 天累计已 58h,批准后将逼近劳工法上限" },
-      { id: "ot-sales-1", name: "周一", dept: "销售", date: "2026-05-28 (周三)", hours: 3.0, reason: "客户演示筹备" },
-      { id: "ot-sales-2", name: "吴二", dept: "销售", date: "2026-05-29 (周四)", hours: 2.5, reason: "季度冲刺" },
+      { id: "ot-zs", name: "张三", dept: "研发", date: "2026-05-25 (周六)", start: "19:00", end: "04:30", hours: 9.5, otType: "pay", reason: "版本上线赶工", flag: "该员工近 7 天累计已 58h,批准后将逼近劳工法上限" },
+      { id: "ot-sales-1", name: "周一", dept: "销售", date: "2026-05-28 (周三)", start: "18:30", end: "21:30", hours: 3.0, otType: "pay", reason: "客户演示筹备" },
+      { id: "ot-sales-2", name: "吴二", dept: "销售", date: "2026-05-29 (周四)", start: "19:00", end: "21:30", hours: 2.5, otType: "leave", reason: "季度冲刺" },
     ],
     generatedDashboard: {
       title: "研发部 OT 看板",

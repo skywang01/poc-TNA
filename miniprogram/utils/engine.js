@@ -10,8 +10,8 @@ const hrms = require("./hrms");
 const INTROS = {
   en: {
     gen: "Generated the “R&D OT Dashboard”. Pin it to home if it looks good:",
-    approval: "Yes — Zhang San has 1 pending OT. I ran a compliance check, you can handle it here:",
-    proactiveText: "Heads up: 3 more OT approvals pending (2 Sales, 1 Ops), 1 with a compliance risk. Handle them together?",
+    approval: "You have 3 pending OT requests. Compliance checks done — handle them right here:",
+    proactiveText: "Zhang San's request carries a compliance risk — review it carefully. Batch-approve the rest?",
     chipBatch: "Batch-approve 3 →",
     chipLater: "Later",
     anomalyTool: "attendance.detect_anomaly(month=2026-06)",
@@ -27,14 +27,25 @@ const INTROS = {
     punchIntro: "Sure — please confirm your punch details:",
     punchTool: "mcp__attendance_mcp__clock_punch",
     punchDone: "✅ Punch recorded. Let me know if anything needs correcting.",
+    punchOtText: "You clocked out 2+ hours after your shift ended — you can file an OT request for today.",
+    punchOtChip: "Request OT →",
+    punchOtAsk: "Request OT for today",
+    otReqIntro: "Sure — I've pre-filled an OT request for you. Check the details and submit:",
+    otReqTool: "mcp__attendance_mcp__submit_ot_request",
+    otReqDone: "✅ OT request submitted and routed to your manager for approval. I'll let you know once it's processed.",
+    otApproveTool: "mcp__attendance_mcp__approve_ot_request",
+    otApproveDone: "✅ Approved — synced to HRMS, the employee has been notified.",
+    otRejectDone: "Rejected — the employee will be notified.",
+    otBatchDone: "✅ All selected OT requests approved and synced to HRMS.",
+    otViewIntro: "Here are the details — you can act on it right here:",
     payslipTool: "mcp__hcm_mcp__get_payslip(month=2026-05)",
     payslipText: "Here is your May payslip — net pay ¥24,030 (+3.2% MoM). Composition and breakdown below; ask me anything about any line:",
     fallback: "I can analyze attendance data. Try: “Who worked the most OT in R&D?”, “Show me clock-in anomalies”, or “Build an R&D OT dashboard”.",
   },
   zh: {
     gen: "已为你生成「研发部 OT 看板」,满意可一键钉到首页:",
-    approval: "张三有 1 笔待审批 OT,已带出合规检查,可直接处理:",
-    proactiveText: "还检测到 3 笔待审批 OT(销售部 2、运营部 1),其中 1 笔有合规风险,要一起处理吗?",
+    approval: "当前有 3 笔待审批 OT,已完成合规检查,可在下表直接处理:",
+    proactiveText: "其中张三一笔有合规风险,建议重点核对。其余要批量处理吗?",
     chipBatch: "批量处理 3 笔 →",
     chipLater: "稍后",
     anomalyTool: "attendance.detect_anomaly(month=2026-06)",
@@ -50,6 +61,17 @@ const INTROS = {
     punchIntro: "好的,请确认你的打卡信息:",
     punchTool: "mcp__attendance_mcp__clock_punch",
     punchDone: "✅ 打卡成功,系统已记录。如需修正随时找我。",
+    punchOtText: "你的下班时间超过班次结束 2 小时,可以申请今天的加班。",
+    punchOtChip: "申请加班 →",
+    punchOtAsk: "帮我申请今天的加班",
+    otReqIntro: "好的,已为你预填一张加班申请单,确认信息后提交:",
+    otReqTool: "mcp__attendance_mcp__submit_ot_request",
+    otReqDone: "✅ 加班申请已提交,已流转给你的经理审批,有进展我会第一时间同步你。",
+    otApproveTool: "mcp__attendance_mcp__approve_ot_request",
+    otApproveDone: "✅ 已批准,结果已写回 HRMS 并通知员工。",
+    otRejectDone: "已驳回,将通知员工。",
+    otBatchDone: "✅ 已批量批准所选 OT,结果已写回 HRMS。",
+    otViewIntro: "这笔申请的详情如下,可直接处理:",
     payslipTool: "mcp__hcm_mcp__get_payslip(month=2026-05)",
     payslipText: "已取到你 5 月的 Payslip:实发 ¥24,030,环比 +3.2%。构成与明细如下,任何一项想细看都可以问我:",
     fallback: "我可以帮你分析考勤数据。试试:「研发部谁 OT 最多」「给我看异常打卡」,或「做个研发部 OT 看板」。",
@@ -64,6 +86,11 @@ function scriptFor(q, locale) {
     return [
       { ctype: "toolcall", label: I.punchTool },
       { ctype: "text", text: I.punchDone },
+      // 下班超班次结束 2h 可申请 OT(mock 演示恒触发;真实模式由 agent 按时间计算)
+      { ctype: "proactive", text: I.punchOtText, chips: [
+        { label: I.punchOtChip, solid: true, action: "ask:" + I.punchOtAsk },
+        { label: I.chipLater, action: "dismiss" },
+      ] },
     ];
   }
   // clock_punch 第一步:打卡意图 → 只出确认卡,不调工具(HITL)。
@@ -75,6 +102,56 @@ function scriptFor(q, locale) {
       { ctype: "text", text: I.punchIntro },
       // time/date/locText 由 chat.js 用设备事实覆盖;操作人即本人,不展示
       { ctype: "clock_punch", punchType, status: "pending" },
+    ];
+  }
+  // ot_request 第二步:用户在表单卡点了「提交」(带齐全部字段)→ 这时才调工具
+  if (/^(提交\s*OT\s*申请|提交加班申请|submit ot request)/i.test(q)) {
+    const ec = (q.match(/employee_code[=::\s]+(\w+)/i) || [])[1];
+    return [
+      { ctype: "toolcall", label: I.otReqTool + (ec ? "(employee_code=" + ec + ")" : "") },
+      { ctype: "text", text: I.otReqDone },
+    ];
+  }
+  // OT 审批确认词(表格行/单卡/批量)→ 这时才调 approve 工具
+  if (/^(批准OT申请|Approve OT request)/i.test(q)) {
+    const id = (q.match(/id=([\w-]+)/) || [])[1] || "?";
+    return [
+      { ctype: "toolcall", label: I.otApproveTool + "(id=" + id + ", action=approve)" },
+      { ctype: "text", text: I.otApproveDone },
+    ];
+  }
+  if (/^(驳回OT申请|Reject OT request)/i.test(q)) {
+    const id = (q.match(/id=([\w-]+)/) || [])[1] || "?";
+    return [
+      { ctype: "toolcall", label: I.otApproveTool + "(id=" + id + ", action=reject)" },
+      { ctype: "text", text: I.otRejectDone },
+    ];
+  }
+  if (/^(批量批准OT申请|Batch approve OT requests)/i.test(q)) {
+    const ids = (q.match(/id=[\w-]+/g) || []).join(", ");
+    return [
+      { ctype: "toolcall", label: I.otApproveTool + "(" + ids + ", action=approve)" },
+      { ctype: "text", text: I.otBatchDone },
+    ];
+  }
+  // 单笔详情:点表格姓名 → 出单卡 ot_approval(须在通用审批分支之前)
+  if (/^(看下.*的待审批 OT|Show .+'s pending OT request)/i.test(q)) {
+    const mm = q.match(/^(?:看下\s*(.+?)\s*的待审批 OT|Show\s+(.+?)'s pending OT request)/i);
+    const nm = ((mm && (mm[1] || mm[2])) || "").trim();
+    const hit = D.pendingOt.filter((p) => p.name === nm)[0] || D.pendingOt[0];
+    return [
+      { ctype: "text", text: I.otViewIntro },
+      { ctype: "ot_approval", pending: hit },
+    ];
+  }
+  // ot_request 第一步:申请加班意图 → 出可编辑表单卡,不调工具(HITL)。
+  // 排除审批类话术("帮我审批 OT"),那是经理侧 ot_approval 剧本。
+  if (/(申请|提报).{0,6}(加班|OT)|(加班|OT).{0,6}申请|(想|要).{0,2}加班|request.{0,8}(ot|overtime)|apply.{0,12}(ot|overtime)|(ot|overtime).{0,8}request/i.test(q) &&
+      !/审批|批准|驳回|approve|reject|pending/i.test(q)) {
+    return [
+      { ctype: "text", text: I.otReqIntro },
+      // date/start/end/otType 由 chat.js 预填默认值(日期 = 本机今天)
+      { ctype: "ot_request", status: "pending" },
     ];
   }
   // payslip 分析(HCM 场景):复用 attendance_report 报表卡 + chart-view 注册表
@@ -106,7 +183,7 @@ function scriptFor(q, locale) {
   if (/审批|批准|待审批|处理.*ot|approve|approval|pending/i.test(q)) {
     return [
       { ctype: "text", text: I.approval },
-      { ctype: "ot_approval", pending: D.pendingOt[0] },
+      { ctype: "ot_pending_list", items: D.pendingOt },
       { ctype: "proactive", text: I.proactiveText, chips: [
         { label: I.chipBatch, solid: true, action: "batch_approve" },
         { label: I.chipLater, action: "dismiss" },
@@ -146,7 +223,13 @@ function invokeMock(query, handlers) {
 }
 
 /* ---------------- Real agent (bipo-ai-service) ---------------- */
-let sessionId = null;
+// 多轮会话记忆按角色隔离:EE / Manager 各自一个 session_id,互不共享
+const sessionIds = { ee: null, manager: null };
+
+function currentRole() {
+  const app = getApp();
+  return (app && app.globalData && app.globalData.role) || CFG.role || "ee";
+}
 
 function parseA2ui(text) {
   const out = [];
@@ -170,8 +253,16 @@ function parseA2ui(text) {
 }
 
 function invokeReal(query, handlers) {
-  const params = { input: query };
-  if (sessionId) params.session_id = sessionId;
+  // 每条消息尾注设备当前日期时间:LLM 不知道"今天"是几号,相对日期(今天/明天/
+  // tonight)全靠这个 marker 解析(prompt 的 DEVICE CONTEXT 段)。气泡仍显示原文。
+  const now = new Date();
+  const p2 = (n) => (n < 10 ? "0" + n : "" + n);
+  const WD = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const deviceNow = now.getFullYear() + "-" + p2(now.getMonth() + 1) + "-" + p2(now.getDate()) +
+    " " + p2(now.getHours()) + ":" + p2(now.getMinutes()) + " (" + WD[now.getDay()] + ")";
+  const role = currentRole();
+  const params = { input: query + "\n[device_now: " + deviceNow + "]" };
+  if (sessionIds[role]) params.session_id = sessionIds[role];
   // x-service-key 认证到 agent 平台;X-HRMS-* 由平台透传给 HRMS MCP 工具。
   const header = { "content-type": "application/json", "x-service-key": CFG.serviceKey };
   const jwt = hrms.getToken();
@@ -198,7 +289,7 @@ function invokeReal(query, handlers) {
         if (payload.error) { handlers.onMessage({ role: "ai", ctype: "text", text: "⚠️ " + (payload.error.message || "agent error") }); return; }
         const r = payload.result;
         if (!r) return;
-        if (r.session_id) sessionId = r.session_id;
+        if (r.session_id) sessionIds[role] = r.session_id;
         const c = r.content || {};
         if (c.type === "text") text += c.text;
         else if (c.type === "tool_call") handlers.onMessage({ role: "ai", ctype: "toolcall", label: c.tool });
@@ -222,7 +313,8 @@ function invoke(query, handlers) {
   hrms.ensureToken(function () { invokeReal(q, handlers); });
 }
 
-// 切换角色时清掉多轮会话记忆,避免沿用上一个身份的上下文。
-function resetSession() { sessionId = null; }
+// 清掉指定角色(默认当前角色)的多轮会话记忆。角色切换不再需要调它 ——
+// session 已按角色隔离;只有用户主动「清空对话」时才清。
+function resetSession(role) { sessionIds[role || currentRole()] = null; }
 
 module.exports = { invoke, resetSession };

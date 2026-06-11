@@ -12,7 +12,7 @@ module.exports = {
   // HRMS 两步登录 + 透传(STEP1 System -> systemToken;STEP2 User(Bearer)-> userToken;
   // userToken 经 X-HRMS-Authorization 带给 agent,平台透传给 HRMS MCP)
   hrms: {
-    enabled: false,                                // false = 跳过 HRMS login,invoke 不带 X-HRMS-* header
+    enabled: true,                                 // false = 跳过 HRMS login,invoke 不带 X-HRMS-* header
     baseUrl: "https://hrms-gateway.ap.ngrok.io",   // X-HRMS-Base-URL;host 须在服务端 HRMS_API_ALLOWED_HOSTS 白名单
     gateway: false,                                // true=网关(/<tenant>/idtapi/...);false=直连(/idtapi/...)
     tenant: "BPO",                                 // x-tenant-code、X-HRMS-Tenant、body.tenant
@@ -25,9 +25,13 @@ module.exports = {
       country: "HK",
     },
     systemAccount: { loginID: "HRM", password: "" }, // STEP1 系统账号
-    accounts: {                                      // STEP2 写死的两个用户账号(只换 loginID)
-      ee:      { loginID: "<EE_LOGIN>",  password: "" },
-      manager: { loginID: "<MGR_LOGIN>", password: "" },
+    // STEP2 写死的两个用户账号(只换 loginID/password)。
+    // 默认走 /Mobile/Authenticate(loginType 2 + deviceID);
+    // 系统账号(如 HRM)配 api:"user" 走 /User/Authenticate。
+    accounts: {
+      // employeeCode:submit_ot_request 等 HRMS 工具的 employee_code(EE 默认 13000827)
+      ee:      { loginID: "<EE_LOGIN>",  password: "<EE_ENCRYPTED_PWD>", employeeCode: "13000827" },
+      manager: { loginID: "<MGR_LOGIN>", password: "<MGR_ENCRYPTED_PWD>" },
     },
   },
 };

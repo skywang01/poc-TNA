@@ -1,0 +1,22 @@
+.cv { margin-top: 16rpx; }
+.cv-title { font-size: 24rpx; font-weight: 700; color: #0E1629; margin-bottom: 8rpx; }
+
+/* echarts 容器:ec-canvas 撑满 */
+.cv-canvas { width: 100%; height: 380rpx; }
+.cv-canvas ec-canvas { width: 100%; height: 100%; display: block; }
+
+/* 冻结快照:与 canvas 同尺寸,无缝替换 */
+.cv-img { width: 100%; height: 380rpx; display: block; }
+
+/* 表格 */
+.cv-table { border: 1rpx solid #E0E4EC; border-radius: 16rpx; overflow: hidden; }
+.cv-tr { display: flex; border-top: 1rpx solid #EEF1F6; }
+.cv-tr:first-child { border-top: none; }
+.cv-th { background: #F5F7FB; }
+.cv-th .cv-td { font-weight: 700; color: #4E5A72; }
+.cv-td { flex: 1; padding: 14rpx 12rpx; font-size: 22rpx; color: #0E1629; word-break: break-all; }
+.cv-td.bad { color: #DC2626; font-weight: 600; }
+.cv-td.good { color: #10B981; }
+
+/* JSON 兜底 */
+.cv-json { background: #F5F7FB; border-radius: 12rpx; padding: 16rpx; font-size: 20rpx; color: #4E5A72; white-space: pre-wrap; word-break: break-all; font-family: monospace; }

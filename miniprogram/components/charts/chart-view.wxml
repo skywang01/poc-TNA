@@ -1,0 +1,37 @@
+<wxs module="tone">
+  // 表格单元格语气:迟到/缺勤类标红,正常标绿
+  var bad = getRegExp("迟到|缺勤|早退|异常|late|absent|early|missing", "i");
+  var good = getRegExp("^(正常|normal|ok)$", "i");
+  module.exports = function (s) {
+    if (typeof s !== "string") return "";
+    if (bad.test(s)) return "bad";
+    if (good.test(s)) return "good";
+    return "";
+  };
+</wxs>
+
+<view class="cv">
+  <view wx:if="{{view.title}}" class="cv-title">{{view.title}}</view>
+
+  <!-- echarts 图表(渲染期短暂存在,随后截图冻结) -->
+  <view wx:if="{{mode === 'canvas'}}" class="cv-canvas">
+    <ec-canvas id="chart" canvas-id="cv-chart" ec="{{ec}}"></ec-canvas>
+  </view>
+
+  <!-- 冻结后的图表快照:普通节点,滚动不错位 -->
+  <image wx:elif="{{mode === 'image'}}" class="cv-img" src="{{imgSrc}}" mode="scaleToFill" />
+
+
+  <!-- 表格(daily list 等明细) -->
+  <view wx:elif="{{mode === 'table'}}" class="cv-table">
+    <view class="cv-tr cv-th">
+      <view wx:for="{{columns}}" wx:key="*this" class="cv-td">{{item}}</view>
+    </view>
+    <view wx:for="{{rows}}" wx:for-item="row" wx:key="index" class="cv-tr">
+      <view wx:for="{{row}}" wx:for-item="cell" wx:key="index" class="cv-td {{tone(cell)}}">{{cell}}</view>
+    </view>
+  </view>
+
+  <!-- 未注册类型兜底 -->
+  <view wx:else class="cv-json">{{jsonText}}</view>
+</view>

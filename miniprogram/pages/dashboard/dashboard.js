@@ -1,7 +1,6 @@
 const { getData } = require("../../utils/mockData");
 const i18n = require("../../utils/i18n");
 const hrms = require("../../utils/hrms");
-const engine = require("../../utils/engine");
 const CFG = require("../../utils/config");
 const app = getApp();
 
@@ -38,8 +37,8 @@ Page({
     const s = i18n.t(locale);
     wx.setNavigationBarTitle({ title: s.navDashboard });
     if (wx.setTabBarItem) {
-      wx.setTabBarItem({ index: 0, text: s.tabDashboard });
-      wx.setTabBarItem({ index: 1, text: s.tabChat });
+      wx.setTabBarItem({ index: 0, text: s.tabChat });
+      wx.setTabBarItem({ index: 1, text: s.tabDashboard });
     }
     this.syncRole();
   },
@@ -67,10 +66,10 @@ Page({
   // 引导页点击 EE / Manager
   pickRole(e) { this.loginAs(e.currentTarget.dataset.r, false); },
 
-  // 顶部 chip:EE <-> Manager 互切并重新登录
+  // 顶部 chip:EE <-> Manager 互切并重新登录。
+  // 会话(聊天记录 + session_id)已按角色隔离,切换时各自保留,无需清理。
   switchRole() {
     const next = app.globalData.role === "manager" ? "ee" : "manager";
-    engine.resetSession();           // 清掉上一身份的会话记忆
     this.loginAs(next, true);
   },
 

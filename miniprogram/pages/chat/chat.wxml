@@ -9,6 +9,7 @@
       </view>
     </view>
     <view class="mh-right">
+      <view class="mh-role" hover-class="mh-clear-hd" bindtap="switchRole">⇄ {{roleLabel}}</view>
       <view class="mh-clear" hover-class="mh-clear-hd" bindtap="clearSession">{{t.clearChat}}</view>
       <button class="me-ava-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
         <image wx:if="{{userAvatar}}" class="me-ava-img" src="{{userAvatar}}" mode="aspectFill" />
@@ -109,6 +110,8 @@
             <view class="a2-b">
               <view class="aline"><text class="al-k">{{t.kDept}}</text><text>{{item.pending.dept}}</text></view>
               <view class="aline"><text class="al-k">{{t.kDate}}</text><text>{{item.pending.date}}</text></view>
+              <view wx:if="{{item.pending.start}}" class="aline"><text class="al-k">{{t.kTime}}</text><text>{{item.pending.start}}–{{item.pending.end}}</text></view>
+              <view wx:if="{{item.pending.otType}}" class="aline"><text class="al-k">{{t.kOtType}}</text><text>{{item.pending.otType === 'leave' ? 'OT Leave' : 'OT Pay'}}</text></view>
               <view class="aline"><text class="al-k">{{t.kHours}}</text><text class="b">{{item.pending.hours}}{{t.hoursUnit}}</text></view>
               <view class="aline"><text class="al-k">{{t.kReason}}</text><text>{{item.pending.reason}}</text></view>
               <view wx:if="{{item.pending.flag}}" class="aflag"><image class="aflag-img" src="/assets/icons/alert-amber.svg" /><text>{{t.aiNote}}{{item.pending.flag}}</text></view>
@@ -119,6 +122,94 @@
               <view wx:else class="adone {{item.pending.status === 'approved' ? 'adone-ok' : 'adone-no'}}">
                 {{item.pending.status === 'approved' ? t.approved : t.rejected}}
               </view>
+            </view>
+          </view>
+
+          <!-- ot_pending_list:待审批 OT 表格(横向滚动,行内批准/驳回) -->
+          <view wx:elif="{{item.ctype === 'ot_pending_list'}}" class="a2ui">
+            <view class="a2-h"><image class="a2-img" src="/assets/icons/filetext-blue.svg" />{{t.otPendingTitle}} · {{item.items.length}}<text class="a2-badge">A2UI · ot_pending_list</text></view>
+            <view class="a2-b">
+              <scroll-view class="otl-scroll" scroll-x>
+                <view class="otl-table">
+                  <view class="otl-row otl-head">
+                    <text class="otl-c otl-name">{{t.kName}}</text>
+                    <text class="otl-c otl-date">{{t.kDate}}</text>
+                    <text class="otl-c otl-time">{{t.kStart}}</text>
+                    <text class="otl-c otl-time">{{t.kEnd}}</text>
+                    <text class="otl-c otl-hours">{{t.kHours}}</text>
+                    <text class="otl-c otl-type">{{t.kOtType}}</text>
+                    <text class="otl-c otl-reason">{{t.kReason}}</text>
+                    <text class="otl-c otl-act">{{t.kAction}}</text>
+                  </view>
+                  <view wx:for="{{item.items}}" wx:for-item="r" wx:for-index="j" wx:key="id" class="otl-row">
+                    <text class="otl-c otl-name otl-name-link" data-i="{{index}}" data-j="{{j}}" catchtap="viewOneOt">{{r.flag ? '⚠ ' : ''}}{{r.name}}</text>
+                    <text class="otl-c otl-date">{{r.date}}</text>
+                    <text class="otl-c otl-time">{{r.start || '—'}}</text>
+                    <text class="otl-c otl-time">{{r.end || '—'}}</text>
+                    <text class="otl-c otl-hours">{{r.hours}}h</text>
+                    <text class="otl-c otl-type">{{r.otType === 'leave' ? 'OT Leave' : 'OT Pay'}}</text>
+                    <text class="otl-c otl-reason">{{r.reason}}</text>
+                    <view class="otl-c otl-act">
+                      <block wx:if="{{!r.status}}">
+                        <text class="otl-btn otl-ok" data-i="{{index}}" data-j="{{j}}" catchtap="approveRow">{{t.approve}}</text>
+                        <text class="otl-btn otl-no" data-i="{{index}}" data-j="{{j}}" catchtap="rejectRow">{{t.reject}}</text>
+                      </block>
+                      <text wx:else class="otl-st {{r.status === 'approved' ? 'otl-st-ok' : 'otl-st-no'}}">{{r.status === 'approved' ? t.approved : t.rejected}}</text>
+                    </view>
+                  </view>
+                </view>
+              </scroll-view>
+              <block wx:for="{{item.items}}" wx:for-item="r" wx:key="id">
+                <view wx:if="{{r.flag}}" class="aflag"><image class="aflag-img" src="/assets/icons/alert-amber.svg" /><text>{{t.aiNote}}{{r.name}} — {{r.flag}}</text></view>
+              </block>
+              <button class="otl-batch" hover-class="punch-cta-hd" data-i="{{index}}" bindtap="batchApproveTable">⚡ {{t.otlBatch}}</button>
+              <view class="drill-hint">{{t.otlHint}}</view>
+            </view>
+          </view>
+
+          <!-- ot_request:EE 提交加班申请表单(HITL:确认提交后才调工具) -->
+          <view wx:elif="{{item.ctype === 'ot_request'}}" class="a2ui">
+            <view class="a2-h"><image class="a2-img" src="/assets/icons/filetext-blue.svg" />{{t.otReqTitle}}<text class="a2-badge">A2UI · ot_request</text></view>
+            <view class="a2-b">
+              <!-- OT 类型:OT Pay / OT Leave 二选一 -->
+              <view class="otf-label">{{t.kOtType}}</view>
+              <view class="otf-seg">
+                <view class="otf-opt {{item.otType === 'pay' ? 'otf-opt-on' : ''}} {{item.status !== 'pending' ? 'otf-opt-off' : ''}}"
+                      data-i="{{index}}" data-v="pay" bindtap="otTypeTap">
+                  <view class="otf-opt-t">{{t.otTypePay}}</view>
+                  <view class="otf-opt-d">{{t.otTypePayDesc}}</view>
+                </view>
+                <view class="otf-opt {{item.otType === 'leave' ? 'otf-opt-on' : ''}} {{item.status !== 'pending' ? 'otf-opt-off' : ''}}"
+                      data-i="{{index}}" data-v="leave" bindtap="otTypeTap">
+                  <view class="otf-opt-t">{{t.otTypeLeave}}</view>
+                  <view class="otf-opt-d">{{t.otTypeLeaveDesc}}</view>
+                </view>
+              </view>
+              <!-- 日期 / 起止时间:原生 picker,时长自动计算 -->
+              <picker mode="date" value="{{item.date}}" disabled="{{item.status !== 'pending'}}" data-i="{{index}}" bindchange="otDate">
+                <view class="otf-row" hover-class="otf-row-hd"><text class="otf-k">{{t.kDate}}</text><text class="otf-v">{{item.date}}</text><text wx:if="{{item.status === 'pending'}}" class="otf-arrow">›</text></view>
+              </picker>
+              <picker mode="time" value="{{item.start}}" disabled="{{item.status !== 'pending'}}" data-i="{{index}}" bindchange="otStart">
+                <view class="otf-row" hover-class="otf-row-hd"><text class="otf-k">{{t.kStart}}</text><text class="otf-v">{{item.start}}</text><text wx:if="{{item.status === 'pending'}}" class="otf-arrow">›</text></view>
+              </picker>
+              <picker mode="time" value="{{item.end}}" disabled="{{item.status !== 'pending'}}" data-i="{{index}}" bindchange="otEnd">
+                <view class="otf-row" hover-class="otf-row-hd"><text class="otf-k">{{t.kEnd}}</text><text class="otf-v">{{item.end}}</text><text wx:if="{{item.status === 'pending'}}" class="otf-arrow">›</text></view>
+              </picker>
+              <view class="otf-row otf-row-static"><text class="otf-k">{{t.kDuration}}</text><text class="otf-v">{{item.durationText}}</text></view>
+              <!-- 事由:选填,锁定后显示纯文本 -->
+              <view class="otf-row">
+                <text class="otf-k">{{t.kReason}}</text>
+                <input wx:if="{{item.status === 'pending'}}" class="otf-inp" value="{{item.reason}}" placeholder="{{t.otReasonPh}}"
+                       placeholder-class="otf-ph" data-i="{{index}}" bindinput="otReason" />
+                <text wx:else class="otf-v">{{item.reason || '—'}}</text>
+              </view>
+              <!-- 动作区:唯一主 CTA + 文字按钮(同 clock_punch) -->
+              <view wx:if="{{item.status === 'pending'}}" class="punch-actions">
+                <button class="punch-cta" hover-class="punch-cta-hd" data-i="{{index}}" bindtap="submitOtReq">✓ {{t.otSubmit}}</button>
+                <button class="punch-ghost" hover-class="punch-ghost-hd" data-i="{{index}}" bindtap="cancelOtReq">{{t.punchCancel}}</button>
+              </view>
+              <view wx:elif="{{item.status === 'done'}}" class="adone adone-ok">{{t.otSubmitted}}</view>
+              <view wx:else class="adone adone-no">{{t.punchCancelled}}</view>
             </view>
           </view>
 

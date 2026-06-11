@@ -1,30 +1,38 @@
 /* ============================================================
-   BIPO Attendance AI — global styles (REDESIGN)
-   Palette: BIPO navy (#20307D) + intelligence blue (#2A63E6).
+   BIPO Attendance AI — global styles (NEW DESIGN SYSTEM)
    Drop-in replacement for app.wxss — WXML/JS unchanged.
+
+   Brings the mini-program in line with the BIPO AI Design System:
+   • electric-blue primary (#3056F5) with a colored glow
+   • signature blue→violet AI gradient for AI moments
+   • refreshed cool-slate neutrals, softer radii, soft shadows
+   Token names are kept identical to the old file so nothing breaks.
    ============================================================ */
 page {
   /* brand */
   --navy: #20307D;
-  --navy-900: #131C4D;
-  --blue: #2A63E6;          /* interactive + AI accent (was violet) */
-  --blue-tint: #EDF1FE;
-  --blue-tint-bd: #D6DEFB;
-  --royal-200: #BFC8EC;     /* hairline on light chips/outlines */
+  --navy-900: #11183B;
+  --blue: #3056F5;          /* electric primary + AI accent (was #2A63E6) */
+  --violet: #7C5CFC;        /* AI gradient end */
+  --blue-tint: #EEF2FF;
+  --blue-tint-bd: #DCE4FF;
+  --royal-200: #C9D3F5;     /* hairline on light chips/outlines */
   /* neutrals (cool slate) */
-  --ink: #0E1629;
-  --slate: #4E5A72;
-  --mute: #8C95A8;
-  --line: #E0E4EC;
-  --divider: #EEF1F6;
-  --bg: #F5F7FB;
-  --sunken: #F0F2F7;
+  --ink: #0E1430;
+  --slate: #57617D;
+  --mute: #A6ADC2;
+  --line: #E4E8F1;
+  --divider: #EEF1F7;
+  --bg: #F4F6FB;
+  --sunken: #EDF0F7;
   /* semantic */
-  --red: #DC2626;       --red-surface: #FDF1F1;   --red-bd: #F6CFCF;
-  --amber: #D9810A;     --amber-surface: #FEF6E8; --amber-bd: #F6DFAE;
-  --green: #1A9D4D;     --green-surface: #E9F7EF;
+  --red: #E23D3D;       --red-surface: #FDEEEE;   --red-bd: #F6CFCF;
+  --amber: #DE8500;     --amber-surface: #FDF3E2; --amber-bd: #F4DDB0;
+  --green: #14A058;     --green-surface: #E6F6EE;
 
-  background: #F5F7FB;
+  background: #F4F6FB;
+  /* Latin → system stack here; load Sora / Plus Jakarta via wx.loadFontFace
+     in app.js if you want the full design-system type. CJK stays native. */
   font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
   color: var(--ink);
 }
@@ -32,14 +40,14 @@ page {
 .card {
   background: #fff;
   border: 1rpx solid var(--line);
-  border-radius: 32rpx;
-  padding: 28rpx;
+  border-radius: 36rpx;
+  padding: 30rpx;
   margin-bottom: 24rpx;
-  box-shadow: 0 1rpx 3rpx rgba(20,28,46,.06), 0 1rpx 2rpx rgba(20,28,46,.04);
+  box-shadow: 0 6rpx 18rpx rgba(20,28,70,.06), 0 1rpx 3rpx rgba(20,28,70,.04);
 }
 .card-title {
   font-size: 30rpx;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.3rpx;
   color: var(--ink);
   display: flex;
@@ -54,13 +62,13 @@ page {
 .ic-warn { background: var(--red-surface); }
 .ic-law { background: var(--amber-surface); }
 .ic-chart { background: var(--blue-tint); }
-.count { margin-left: auto; font-size: 22rpx; color: var(--mute); font-weight: 400; }
+.count { margin-left: auto; font-size: 22rpx; color: var(--mute); font-weight: 500; }
 
 .btn {
   border: none; font-size: 26rpx; padding: 16rpx 26rpx;
-  border-radius: 18rpx; font-weight: 600; line-height: 1;
+  border-radius: 999rpx; font-weight: 700; line-height: 1;
 }
-.btn-primary { background: var(--navy); color: #fff; }
+.btn-primary { background: var(--blue); color: #fff; box-shadow: 0 6rpx 16rpx rgba(48,86,245,.28); }
 .btn-ghost { background: #fff; color: var(--navy); border: 1rpx solid var(--royal-200); }
 button::after { border: none; }
 
@@ -69,12 +77,12 @@ button::after { border: none; }
 .alert-red { background: var(--red-surface); border: 1rpx solid var(--red-bd); }
 .alert-amber { background: var(--amber-surface); border: 1rpx solid var(--amber-bd); }
 .alert .dot { width: 16rpx; height: 16rpx; border-radius: 50%; margin-top: 10rpx; flex-shrink: 0; }
-.dot-red { background: #EF4444; }
+.dot-red { background: var(--red); }
 .dot-amber { background: var(--amber); }
 .alert .c { flex: 1; font-size: 26rpx; }
-.alert .c .t { font-weight: 600; margin-bottom: 6rpx; color: var(--ink); }
+.alert .c .t { font-weight: 700; margin-bottom: 6rpx; color: var(--ink); }
 .alert .c .why { color: var(--slate); font-size: 23rpx; line-height: 1.5; }
-.alert .c .why .ai { color: var(--blue); font-weight: 600; }   /* AI attribution — now blue */
+.alert .c .why .ai { color: var(--blue); font-weight: 600; }   /* AI attribution — electric blue */
 .sev { font-size: 20rpx; padding: 4rpx 14rpx; border-radius: 999rpx; font-weight: 700; height: fit-content; }
-.sev-high { background: var(--red-surface); color: #C32B2B; }
-.sev-mid { background: #FBEFD5; color: #B45309; }
+.sev-high { background: var(--red-surface); color: #C12B2B; }
+.sev-mid { background: var(--amber-surface); color: #A85F00; }
